@@ -16,3 +16,8 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     show-sql: true
+
+  jwt:
+    secret: synk-secret-key-must-be-at-least-32-characters-long
+    expiration: 86400000
+
