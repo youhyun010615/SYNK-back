@@ -1,6 +1,7 @@
 package com.synk.entity;
 
 
+import com.synk.global.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,7 +14,7 @@ import java.time.LocalTime;
 @Table(name = "rooms")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Room {
+public class Room extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
