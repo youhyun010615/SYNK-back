@@ -14,7 +14,7 @@ public class JoinRoomResponse {
     private String roomName;
     private int maxMembers;
 
-    public static JoinRoomResponse from(Room room, int currentMembers) {
+    public static JoinRoomResponse from(Room room) {
         return JoinRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())

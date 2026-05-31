@@ -12,13 +12,17 @@ public class InviteResponse {
 
     private Long roomId;
     private String roomName;
-    private int maxMembers;
+    private String code;
+    private String inviteUrl;
+    private String thumbnail;
 
-    public static JoinRoomResponse from(Room room, int currentMembers) {
-        return JoinRoomResponse.builder()
+    public static InviteResponse from(Room room) {
+        return InviteResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
-                .maxMembers(room.getMaxMembers())
+                .code(room.getCode())
+                .inviteUrl("synk.app/r/" + room.getCode())
+                .thumbnail(room.getThumbnail())
                 .build();
     }
 }
