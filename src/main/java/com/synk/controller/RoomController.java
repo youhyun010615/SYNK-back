@@ -12,6 +12,8 @@ import com.synk.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.synk.dto.response.MyRoomsResponse;
+
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -64,5 +66,14 @@ public class RoomController {
         roomService.leaveRoom(roomId);
         return ResponseEntity.ok(ApiResponse.success("방 나가기 완료"));
     }
+
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<MyRoomsResponse>>
+    getMyRooms() {
+        MyRoomsResponse response = roomService.getMyRooms();
+        return ResponseEntity.ok(ApiResponse.success(response,
+                "방 목록 조회 성공"));
+    }
+
 }
 

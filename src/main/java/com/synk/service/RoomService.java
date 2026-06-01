@@ -15,6 +15,7 @@ import com.synk.entity.RoomMember;
 import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
+import com.synk.repository.MissionRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
 import com.synk.repository.UserRepository;
@@ -22,6 +23,9 @@ import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.synk.dto.response.MyRoomsResponse;
+import com.synk.entity.Mission;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +37,7 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
+    private final MissionRepository missionRepository;
 
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request) {
@@ -148,6 +153,71 @@ public class RoomService {
             throw new CustomException(ErrorCode.ROOM_OWNER_REQUIRED);
         }
     }
+
+    @Transactional(readOnly = true)
+    public MyRoomsResponse getMyRooms() {
+        User user = getUser();
+        List<RoomMember> myRooms =
+                roomMemberRepository.findByUser(user);
+
+        List<MyRoomsResponse.ActiveRoom> active = new
+                java.util.ArrayList<>();
+        List<MyRoomsResponse.WaitingRoom> waiting = new
+                java.util.ArrayList<>();
+
+        for (RoomMember rm : myRooms) {
+            Room room = rm.getRoom();
+            int currentMembers =
+                    roomMemberRepository.countByRoom(room);
+
+            List<MyRoomsResponse.MemberProfile> profiles =
+                    roomMemberRepository.findByRoom(room)
+                            .stream()
+                            .map(m ->
+                                    MyRoomsResponse.MemberProfile.builder()
+                                            .userId(m.getUser().getId())
+
+                                            .profileImage(m.getUser().getProfileImage())
+                                            .build())
+                            .toList();
+
+            if (currentMembers >= room.getMaxMembers()) {
+                List<Mission> missions = missionRepository.findByRoomAndDate(room,
+                                java.time.LocalDate.now());
+                int completed = (int) missions.stream()
+                        .filter(m -> m.getStatus() ==
+                                Mission.MissionStatus.COMPLETED)
+                        .count();
+
+                active.add(MyRoomsResponse.ActiveRoom.builder()
+                        .id(room.getId())
+                        .name(room.getName())
+                        .totalMissions(missions.size())
+                        .completedMissions(completed)
+                        .isAllCompleted(completed ==
+                                missions.size() && !missions.isEmpty())
+                        .roomThumbnail(room.getThumbnail())
+                        .memberProfiles(profiles)
+                        .build());
+            } else {
+
+                waiting.add(MyRoomsResponse.WaitingRoom.builder()
+                        .id(room.getId())
+                        .name(room.getName())
+                        .currentMembers(currentMembers)
+                        .maxMembers(room.getMaxMembers())
+                        .roomThumbnail(room.getThumbnail())
+                        .memberProfiles(profiles)
+                        .build());
+            }
+        }
+
+        return MyRoomsResponse.builder()
+                .active(active)
+                .waiting(waiting)
+                .build();
+    }
+
 
     private String generateCode() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
