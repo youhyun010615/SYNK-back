@@ -24,3 +24,6 @@ jwt:
   secret: synk-secret-key-must-be-at-least-32-characters-long
   expiration: 86400000
 
+kakao:
+  client-id: 82680a1e30c24f8e4ca69b618bd0ba07
+
