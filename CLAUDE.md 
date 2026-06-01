@@ -59,7 +59,7 @@ public class 클래스명 {
 - submissions 미제출자는 deadline 종료 시 MISSED로 일괄 INSERT
 - rooms.current_members 컬럼 없음 → COUNT(room_members)로 대체
 - mission_templates는 서비스 출시 전 90개 미리 INSERT 필요
-- mission_time_slots는 서비스 출시 전 36개 미리 INSERT 필요 (06:00~23:30, 30분 간격)
+- mission_time_slots는 서비스 출시 전 48개 미리 INSERT 필요 (00:00~23:30, 30분 간격)
 
 ## Entity 작성 순서
 1. MissionTemplate (참조 당하는 테이블이므로 가장 먼저)
