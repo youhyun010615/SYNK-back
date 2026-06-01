@@ -2,14 +2,11 @@ spring:
   application:
     name: synk
 
+  profiles:
+    active: local
+
   autoconfigure:
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
-
-  datasource:
-    url: jdbc:mysql://localhost:3306/synk?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password:
-    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
@@ -19,11 +16,4 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     show-sql: true
-
-jwt:
-  secret: synk-secret-key-must-be-at-least-32-characters-long
-  expiration: 86400000
-
-kakao:
-  client-id: 82680a1e30c24f8e4ca69b618bd0ba07
 

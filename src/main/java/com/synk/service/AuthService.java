@@ -26,6 +26,12 @@ public class AuthService {
     @Value("${kakao.client-id}")
     private String kakaoClientId;
 
+    @Value("${google.client-id}")
+    private String googleClientId;
+
+    @Value("${google.client-secret}")
+    private String googleClientSecret;
+
     @Transactional
     public AuthResponse kakaoLogin(AuthRequest request) {
         String accessToken = getKakaoAccessToken(request.getCode(), request.getRedirectUri());
@@ -42,7 +48,8 @@ public class AuthService {
 
     @Transactional
     public AuthResponse googleLogin(AuthRequest request) {
-        Map<String, Object> googleUser = getGoogleUserInfo(request.getAccessToken());
+        String accessToken = getGoogleAccessToken(request.getCode(), request.getRedirectUri());
+        Map<String, Object> googleUser = getGoogleUserInfo(accessToken);
 
         String googleId = (String) googleUser.get("sub");
         String name = (String) googleUser.get("name");
@@ -102,6 +109,25 @@ public class AuthService {
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
                 .body(Map.class);
+    }
+
+    private String getGoogleAccessToken(String code, String redirectUri) {
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", googleClientId);
+        params.add("client_secret", googleClientSecret);
+        params.add("redirect_uri", redirectUri);
+        params.add("code", code);
+
+        Map<String, Object> response = RestClient.create()
+                .post()
+                .uri("https://oauth2.googleapis.com/token")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .body(params)
+                .retrieve()
+                .body(Map.class);
+
+        return (String) response.get("access_token");
     }
 
     private Map<String, Object> getGoogleUserInfo(String accessToken) {
