@@ -26,6 +26,9 @@ public class AuthService {
     @Value("${kakao.client-id}")
     private String kakaoClientId;
 
+    @Value("${kakao.client-secret}")
+    private String kakaoClientSecret;
+
     @Value("${google.client-id}")
     private String googleClientId;
 
@@ -88,6 +91,7 @@ public class AuthService {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", kakaoClientId);
+        params.add("client_secret", kakaoClientSecret);
         params.add("redirect_uri", redirectUri);
         params.add("code", code);
 

@@ -3,13 +3,16 @@
 package com.synk.global.exception;
 
 import com.synk.global.response.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<?>> handlerCustomException(CustomException e){
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity
@@ -19,6 +22,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(Exception e) {
+        log.error("서버 오류 발생: {}", e.getMessage(), e);
         return ResponseEntity
                 .status(500)
                 .body(ApiResponse.failure("서버 오류가 발생했습니다."));

@@ -220,7 +220,7 @@ public class RoomService {
 
 
     private String generateCode() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 5).toUpperCase();
     }
 }
 
