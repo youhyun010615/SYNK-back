@@ -25,7 +25,8 @@ public class CorsConfig {
                 "http://172.*.*.*:5173",
                 "http://10.*.*.*:3000",
                 "http://10.*.*.*:5173",
-                "https://explain-evasion-jailhouse.ngrok-free.app"
+                "https://explain-evasion-jailhouse.ngrok-free.app",
+                "https://synkfront.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
