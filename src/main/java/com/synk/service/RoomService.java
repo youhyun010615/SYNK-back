@@ -10,6 +10,7 @@ import com.synk.dto.response.CreateRoomResponse;
 import com.synk.dto.response.InviteResponse;
 import com.synk.dto.response.JoinRoomResponse;
 import com.synk.dto.response.RoomDetailResponse;
+import com.synk.dto.response.RoomMemberResponse;
 import com.synk.entity.Room;
 import com.synk.entity.RoomMember;
 import com.synk.entity.User;
@@ -105,6 +106,16 @@ public class RoomService {
         validateMember(user, room);
         List<RoomMember> members = roomMemberRepository.findByRoom(room);
         return RoomDetailResponse.from(room, members);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RoomMemberResponse> getRoomMembers(Long roomId) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateMember(user, room);
+        return roomMemberRepository.findByRoom(room).stream()
+                .map(RoomMemberResponse::from)
+                .toList();
     }
 
     @Transactional

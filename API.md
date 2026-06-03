@@ -34,6 +34,7 @@ Authorization: Bearer {token}
 | 방 상세 조회 | GET | /api/rooms/{roomId} | 필요 |
 | 방 설정 수정 | PATCH | /api/rooms/{roomId} | 필요 |
 | 방 나가기 | DELETE | /api/rooms/{roomId}/leave | 필요 |
+| 방 멤버 목록 조회 | GET | /api/rooms/{roomId}/members | 필요 |
 | 방의 앨범 목록 조회 | GET | /api/rooms/{roomId}/albums | 필요 |
 | SYNKLOG 생성 | POST | /api/rooms/{roomId}/albums/{date}/synklog | 필요 |
 | 특정 날짜 SYNKLOG 조회 | GET | /api/rooms/{roomId}/albums/{date}/synklog | 필요 |
@@ -350,6 +351,24 @@ Status:
 - 200: 수정 성공
 - 401: 인증 토큰 없음
 - 403: 방장이 아님
+- 404: 존재하지 않는 방
+
+#### GET /api/rooms/{roomId}/members
+설명: 방 멤버 목록을 상세 조회합니다 (방 멤버만 가능)
+Request: 없음
+Response:
+{
+"success": true,
+"data": [
+{"userId": 1, "name": "유현", "profileImage": "😊", "isOwner": true, "joinedAt": "2026-05-07T22:30:00"},
+{"userId": 2, "name": "아영", "profileImage": "🐱", "isOwner": false, "joinedAt": "2026-05-07T22:31:00"}
+],
+"message": "멤버 목록 조회 성공"
+}
+Status:
+- 200: 조회 성공
+- 401: 인증 토큰 없음
+- 403: 방 멤버가 아님
 - 404: 존재하지 않는 방
 
 #### DELETE /api/rooms/{roomId}/leave
