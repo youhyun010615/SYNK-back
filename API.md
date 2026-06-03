@@ -305,6 +305,7 @@ Response:
 "id": 1,
 "name": "새벽밤",
 "code": "7X8K2",
+"ownerId": 1,
 "currentMembers": 5,
 "maxMembers": 5,
 "dailyMissionCount": 5,
