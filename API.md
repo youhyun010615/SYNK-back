@@ -307,6 +307,9 @@ Response:
 "code": "7X8K2",
 "currentMembers": 5,
 "maxMembers": 5,
+"dailyMissionCount": 5,
+"missionStartTime": "10:00",
+"missionEndTime": "22:00",
 "members": [
 {"userId": 1, "name": "유현", "profileImage": "😊"},
 {"userId": 2, "name": "아영", "profileImage": "🐱"},

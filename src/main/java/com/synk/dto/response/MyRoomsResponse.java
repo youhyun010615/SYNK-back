@@ -33,6 +33,7 @@ public class MyRoomsResponse {
         private String name;
         private int currentMembers;
         private int maxMembers;
+        private int waitingCount;
         private String roomThumbnail;
         private List<MemberProfile> memberProfiles;
     }

@@ -7,6 +7,7 @@ import com.synk.entity.RoomMember;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Getter
@@ -18,6 +19,9 @@ public class RoomDetailResponse {
     private String code;
     private int currentMembers;
     private int maxMembers;
+    private int dailyMissionCount;
+    private LocalTime missionStartTime;
+    private LocalTime missionEndTime;
     private List<MemberInfo> members;
 
     @Getter
@@ -43,6 +47,9 @@ public class RoomDetailResponse {
                 .code(room.getCode())
                 .currentMembers(members.size())
                 .maxMembers(room.getMaxMembers())
+                .dailyMissionCount(room.getDailyMissionCount())
+                .missionStartTime(room.getMissionStartTime())
+                .missionEndTime(room.getMissionEndTime())
                 .members(memberInfos)
                 .build();
     }

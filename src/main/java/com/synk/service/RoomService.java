@@ -206,6 +206,7 @@ public class RoomService {
                         .name(room.getName())
                         .currentMembers(currentMembers)
                         .maxMembers(room.getMaxMembers())
+                        .waitingCount(room.getMaxMembers() - currentMembers)
                         .roomThumbnail(room.getThumbnail())
                         .memberProfiles(profiles)
                         .build());
