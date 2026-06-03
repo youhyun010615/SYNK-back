@@ -1,9 +1,0 @@
-[variables]
-NIXPACKS_JDK_VERSION = "17"
-JAVA_OPTS = "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC"
-
-[phases.build]
-cmds = ["./gradlew bootJar -x test"]
-
-[start]
-cmd = "java $JAVA_OPTS -jar build/libs/synk-0.0.1-SNAPSHOT.jar --debug=false --logging.level.root=INFO --logging.level.org.springframework=INFO --logging.level.org.hibernate=INFO --logging.level.com.zaxxer.hikari=INFO --spring.jpa.show-sql=false --spring.jpa.open-in-view=false --spring.jpa.properties.hibernate.format_sql=false --spring.datasource.hikari.maximum-pool-size=3 --spring.datasource.hikari.minimum-idle=1"
