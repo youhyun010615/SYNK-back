@@ -70,6 +70,13 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success("방 나가기 완료"));
     }
 
+    @DeleteMapping("/{roomId}/members/{userId}")
+    public ResponseEntity<ApiResponse<Void>> kickMember(@PathVariable Long roomId,
+                                                        @PathVariable Long userId) {
+        roomService.kickMember(roomId, userId);
+        return ResponseEntity.ok(ApiResponse.success("멤버 강퇴 완료"));
+    }
+
     @GetMapping("/{roomId}/members")
     public ResponseEntity<ApiResponse<List<RoomMemberResponse>>>
     getRoomMembers(@PathVariable Long roomId) {

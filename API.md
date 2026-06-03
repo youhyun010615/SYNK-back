@@ -35,6 +35,7 @@ Authorization: Bearer {token}
 | 방 설정 수정 | PATCH | /api/rooms/{roomId} | 필요 |
 | 방 나가기 | DELETE | /api/rooms/{roomId}/leave | 필요 |
 | 방 멤버 목록 조회 | GET | /api/rooms/{roomId}/members | 필요 |
+| 멤버 강퇴 | DELETE | /api/rooms/{roomId}/members/{userId} | 필요 |
 | 방의 앨범 목록 조회 | GET | /api/rooms/{roomId}/albums | 필요 |
 | SYNKLOG 생성 | POST | /api/rooms/{roomId}/albums/{date}/synklog | 필요 |
 | 특정 날짜 SYNKLOG 조회 | GET | /api/rooms/{roomId}/albums/{date}/synklog | 필요 |
@@ -352,6 +353,20 @@ Status:
 - 401: 인증 토큰 없음
 - 403: 방장이 아님
 - 404: 존재하지 않는 방
+
+#### DELETE /api/rooms/{roomId}/members/{userId}
+설명: 방장이 특정 멤버를 강퇴합니다
+Request: 없음
+Response:
+{
+"success": true,
+"message": "멤버 강퇴 완료"
+}
+Status:
+- 200: 강퇴 성공
+- 401: 인증 토큰 없음
+- 403: 방장이 아님
+- 404: 존재하지 않는 방 또는 유저
 
 #### GET /api/rooms/{roomId}/members
 설명: 방 멤버 목록을 상세 조회합니다 (방 멤버만 가능)

@@ -108,6 +108,18 @@ public class RoomService {
         return RoomDetailResponse.from(room, members);
     }
 
+    @Transactional
+    public void kickMember(Long roomId, Long targetUserId) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateOwner(user, room);
+        User targetUser = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        RoomMember member = roomMemberRepository.findByUserAndRoom(targetUser, room)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_ACCESS_DENIED));
+        roomMemberRepository.delete(member);
+    }
+
     @Transactional(readOnly = true)
     public List<RoomMemberResponse> getRoomMembers(Long roomId) {
         User user = getUser();
