@@ -17,6 +17,7 @@ public class RoomDetailResponse {
     private Long id;
     private String name;
     private String code;
+    private Long ownerId;
     private int currentMembers;
     private int maxMembers;
     private int dailyMissionCount;
@@ -45,6 +46,7 @@ public class RoomDetailResponse {
                 .id(room.getId())
                 .name(room.getName())
                 .code(room.getCode())
+                .ownerId(room.getOwner().getId())
                 .currentMembers(members.size())
                 .maxMembers(room.getMaxMembers())
                 .dailyMissionCount(room.getDailyMissionCount())

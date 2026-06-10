@@ -7,11 +7,14 @@ import com.synk.dto.response.CreateRoomResponse;
 import com.synk.dto.response.InviteResponse;
 import com.synk.dto.response.JoinRoomResponse;
 import com.synk.dto.response.RoomDetailResponse;
+import com.synk.dto.response.RoomMemberResponse;
 import com.synk.global.response.ApiResponse;
 import com.synk.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 import com.synk.dto.response.MyRoomsResponse;
 
 
@@ -65,6 +68,20 @@ public class RoomController {
                                                        Long roomId) {
         roomService.leaveRoom(roomId);
         return ResponseEntity.ok(ApiResponse.success("방 나가기 완료"));
+    }
+
+    @DeleteMapping("/{roomId}/members/{userId}")
+    public ResponseEntity<ApiResponse<Void>> kickMember(@PathVariable Long roomId,
+                                                        @PathVariable Long userId) {
+        roomService.kickMember(roomId, userId);
+        return ResponseEntity.ok(ApiResponse.success("멤버 강퇴 완료"));
+    }
+
+    @GetMapping("/{roomId}/members")
+    public ResponseEntity<ApiResponse<List<RoomMemberResponse>>>
+    getRoomMembers(@PathVariable Long roomId) {
+        List<RoomMemberResponse> response = roomService.getRoomMembers(roomId);
+        return ResponseEntity.ok(ApiResponse.success(response, "멤버 목록 조회 성공"));
     }
 
     @GetMapping("/my")

@@ -10,6 +10,7 @@ import com.synk.dto.response.CreateRoomResponse;
 import com.synk.dto.response.InviteResponse;
 import com.synk.dto.response.JoinRoomResponse;
 import com.synk.dto.response.RoomDetailResponse;
+import com.synk.dto.response.RoomMemberResponse;
 import com.synk.entity.Room;
 import com.synk.entity.RoomMember;
 import com.synk.entity.User;
@@ -105,6 +106,28 @@ public class RoomService {
         validateMember(user, room);
         List<RoomMember> members = roomMemberRepository.findByRoom(room);
         return RoomDetailResponse.from(room, members);
+    }
+
+    @Transactional
+    public void kickMember(Long roomId, Long targetUserId) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateOwner(user, room);
+        User targetUser = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        RoomMember member = roomMemberRepository.findByUserAndRoom(targetUser, room)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_ACCESS_DENIED));
+        roomMemberRepository.delete(member);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RoomMemberResponse> getRoomMembers(Long roomId) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateMember(user, room);
+        return roomMemberRepository.findByRoom(room).stream()
+                .map(RoomMemberResponse::from)
+                .toList();
     }
 
     @Transactional
