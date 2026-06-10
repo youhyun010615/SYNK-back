@@ -1,7 +1,7 @@
-FROM gradle:8.10-jdk17 AS build
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
 COPY . .
-RUN gradle bootJar --no-daemon -x test
+RUN chmod +x gradlew && ./gradlew bootJar --no-daemon -x test
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
