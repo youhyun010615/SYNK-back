@@ -56,10 +56,14 @@ public class ChatService {
         Room room = getRoom(roomId);
         validateMember(user, room);
 
+        RoomChat.MessageType messageType = request.getMessageType() != null
+                ? request.getMessageType()
+                : RoomChat.MessageType.TEXT;
+
         RoomChat chat = roomChatRepository.save(RoomChat.builder()
                         .room(room)
                         .user(user)
-                        .messageType(request.getMessageType())
+                        .messageType(messageType)
                         .content(request.getContent())
                         .build());
 
