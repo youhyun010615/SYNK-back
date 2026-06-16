@@ -204,12 +204,12 @@ public class RoomService {
                                             .build())
                             .toList();
 
-            List<Mission> missions = missionRepository.findByRoomAndDate(room,
-                    java.time.LocalDate.now());
-
-            if (!missions.isEmpty()) {
+            if (currentMembers >= room.getMaxMembers()) {
+                List<Mission> missions = missionRepository.findByRoomAndDate(room,
+                                java.time.LocalDate.now());
                 int completed = (int) missions.stream()
-                        .filter(m -> m.getStatus() == Mission.MissionStatus.COMPLETED)
+                        .filter(m -> m.getStatus() ==
+                                Mission.MissionStatus.COMPLETED)
                         .count();
 
                 active.add(MyRoomsResponse.ActiveRoom.builder()
@@ -217,11 +217,13 @@ public class RoomService {
                         .name(room.getName())
                         .totalMissions(missions.size())
                         .completedMissions(completed)
-                        .isAllCompleted(completed == missions.size())
+                        .isAllCompleted(completed ==
+                                missions.size() && !missions.isEmpty())
                         .roomThumbnail(room.getThumbnail())
                         .memberProfiles(profiles)
                         .build());
             } else {
+
                 waiting.add(MyRoomsResponse.WaitingRoom.builder()
                         .id(room.getId())
                         .name(room.getName())
