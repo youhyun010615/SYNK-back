@@ -11,8 +11,8 @@ public class UpdateRoomRequest {
 
     private String name;
     private String thumbnail;
-    private int maxMembers;
-    private int dailyMissionCount;
+    private Integer maxMembers;
+    private Integer dailyMissionCount;
     private LocalTime missionStartTime;
     private LocalTime missionEndTime;
 }

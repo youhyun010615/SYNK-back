@@ -64,17 +64,17 @@ public class Room extends BaseTimeEntity {
     }
 
     public void updateSettings(String name, String
-                                       thumbnail, int maxMembers,
-                               int dailyMissionCount,
+                                       thumbnail, Integer maxMembers,
+                               Integer dailyMissionCount,
                                LocalTime missionStartTime,
                                LocalTime missionEndTime)
     {
-        this.name = name;
-        this.thumbnail = thumbnail;
-        this.maxMembers = maxMembers;
-        this.dailyMissionCount = dailyMissionCount;
-        this.missionStartTime = missionStartTime;
-        this.missionEndTime = missionEndTime;
+        if (name != null) this.name = name;
+        if (thumbnail != null) this.thumbnail = thumbnail;
+        if (maxMembers != null) this.maxMembers = maxMembers;
+        if (dailyMissionCount != null) this.dailyMissionCount = dailyMissionCount;
+        if (missionStartTime != null) this.missionStartTime = missionStartTime;
+        if (missionEndTime != null) this.missionEndTime = missionEndTime;
     }
 
 }
