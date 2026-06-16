@@ -131,7 +131,7 @@ public class RoomService {
     }
 
     @Transactional
-    public void updateRoom(Long roomId, UpdateRoomRequest request) {
+    public RoomDetailResponse updateRoom(Long roomId, UpdateRoomRequest request) {
         User user = getUser();
         Room room = getRoom(roomId);
         validateOwner(user, room);
@@ -143,6 +143,8 @@ public class RoomService {
                 request.getMissionStartTime(),
                 request.getMissionEndTime()
         );
+        List<RoomMember> members = roomMemberRepository.findByRoom(room);
+        return RoomDetailResponse.from(room, members);
     }
 
     @Transactional

@@ -56,12 +56,12 @@ public class RoomController {
     }
 
     @PatchMapping("/{roomId}")
-    public ResponseEntity<ApiResponse<Void>> updateRoom(@PathVariable
+    public ResponseEntity<ApiResponse<RoomDetailResponse>> updateRoom(@PathVariable
                                                         Long roomId,
                                                         @RequestBody
                                                         UpdateRoomRequest request) {
-        roomService.updateRoom(roomId, request);
-        return ResponseEntity.ok(ApiResponse.success("방 설정 수정 완료"));
+        RoomDetailResponse response = roomService.updateRoom(roomId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "방 설정 수정 완료"));
     }
 
     @DeleteMapping("/{roomId}/leave")

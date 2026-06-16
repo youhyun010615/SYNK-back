@@ -26,7 +26,7 @@ public class Room extends BaseTimeEntity {
             10)
     private String code;
 
-    @Column(length = 255)
+    @Column(length = 1000)
     private String thumbnail;
 
     @ManyToOne(fetch = FetchType.LAZY)
