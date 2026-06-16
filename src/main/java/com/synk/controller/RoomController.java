@@ -12,6 +12,7 @@ import com.synk.global.response.ApiResponse;
 import com.synk.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class RoomController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<CreateRoomResponse>>
-    createRoom(@RequestBody CreateRoomRequest request) {
+    createRoom(@Valid @RequestBody CreateRoomRequest request) {
         CreateRoomResponse response = roomService.createRoom(request);
         return ResponseEntity.ok(ApiResponse.success(response, "방 생성 완료"));
     }

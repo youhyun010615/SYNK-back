@@ -16,6 +16,7 @@ import com.synk.entity.RoomMember;
 import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
+import com.synk.config.MissionScheduler;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
@@ -39,6 +40,7 @@ public class RoomService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final MissionScheduler missionScheduler;
 
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request) {
@@ -87,6 +89,11 @@ public class RoomService {
                 .room(room)
                 .isOwner(false)
                 .build());
+
+        int newMemberCount = currentMembers + 1;
+        if (newMemberCount >= room.getMaxMembers()) {
+            missionScheduler.createMissionsForRoom(room);
+        }
 
         return JoinRoomResponse.from(room);
     }
