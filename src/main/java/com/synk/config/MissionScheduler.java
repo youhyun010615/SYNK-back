@@ -19,7 +19,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 
 
@@ -35,8 +34,8 @@ public class MissionScheduler {
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final SubmissionRepository submissionRepository;
 
-    // 자정에 당일 미션 생성
-    @Scheduled(cron = "0 0 0 * * *")
+    // 자정에 당일 미션 생성 (KST 기준)
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
     public void createDailyMissions() {
         LocalDate today = LocalDate.now();
@@ -45,6 +44,9 @@ public class MissionScheduler {
         List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
 
         for (Room room : rooms) {
+            int currentMembers = roomMemberRepository.countByRoom(room);
+            if (currentMembers < room.getMaxMembers()) continue; // 풀방이 아니면 미션 생성 안 함
+
             List<MissionTimeSlot> availableSlots =
                     allSlots.stream()
                             .filter(slot ->
