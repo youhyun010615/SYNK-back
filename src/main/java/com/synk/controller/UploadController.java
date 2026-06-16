@@ -18,14 +18,12 @@ public class UploadController {
 
     private final UploadService uploadService;
 
+    // type: profile / room / video
     @GetMapping("/presigned-url")
     public ResponseEntity<ApiResponse<Map<String, String>>> getPresignedUrl(
-            @RequestParam String filename) {
-        String result = uploadService.generatePresignedUrl(filename);
-        String[] parts = result.split("\\|");
-        return ResponseEntity.ok(ApiResponse.success(
-                Map.of("presignedUrl", parts[0], "videoUrl", parts[1]),
-                "Presigned URL 발급 성공"
-        ));
+            @RequestParam String filename,
+            @RequestParam(defaultValue = "video") String type) {
+        Map<String, String> result = uploadService.generatePresignedUrl(filename, type);
+        return ResponseEntity.ok(ApiResponse.success(result, "Presigned URL 발급 성공"));
     }
 }

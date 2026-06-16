@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -23,14 +24,30 @@ public class UploadService {
     @Value("${aws.s3.region}")
     private String region;
 
-    public String generatePresignedUrl(String filename) {
-        String ext = filename.contains(".") ? filename.substring(filename.lastIndexOf(".")) : ".mp4";
-        String key = "videos/" + UUID.randomUUID() + ext;
+    private static final Map<String, String> CONTENT_TYPES = Map.of(
+            ".jpg", "image/jpeg",
+            ".jpeg", "image/jpeg",
+            ".png", "image/png",
+            ".mp4", "video/mp4",
+            ".mov", "video/quicktime"
+    );
+
+    private static final Map<String, String> FOLDER_MAP = Map.of(
+            "profile", "profiles/",
+            "room", "rooms/",
+            "video", "videos/"
+    );
+
+    public Map<String, String> generatePresignedUrl(String filename, String type) {
+        String ext = filename.contains(".") ? filename.substring(filename.lastIndexOf(".")).toLowerCase() : ".mp4";
+        String contentType = CONTENT_TYPES.getOrDefault(ext, "application/octet-stream");
+        String folder = FOLDER_MAP.getOrDefault(type, "videos/");
+        String key = folder + UUID.randomUUID() + ext;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
-                .contentType("video/mp4")
+                .contentType(contentType)
                 .build();
 
         PresignedPutObjectRequest presigned = s3Presigner.presignPutObject(
@@ -40,7 +57,7 @@ public class UploadService {
                         .build()
         );
 
-        String videoUrl = "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key;
-        return presigned.url().toString() + "|" + videoUrl;
+        String fileUrl = "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key;
+        return Map.of("presignedUrl", presigned.url().toString(), "fileUrl", fileUrl);
     }
 }
