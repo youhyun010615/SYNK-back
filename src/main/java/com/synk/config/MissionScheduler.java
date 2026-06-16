@@ -33,6 +33,7 @@ public class MissionScheduler {
     private final MissionTemplateRepository missionTemplateRepository;
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final SubmissionRepository submissionRepository;
+    private final CollectionRecordRepository collectionRecordRepository;
 
     // 자정에 당일 미션 생성 (KST 기준)
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
@@ -107,17 +108,31 @@ public class MissionScheduler {
                                 .toList();
 
                 for (RoomMember member : members) {
-                    if
-                    (!submittedUserIds.contains(member.getUser().getId())) {
-
+                    if (!submittedUserIds.contains(member.getUser().getId())) {
                         submissionRepository.save(Submission.builder()
                                 .user(member.getUser())
                                 .room(mission.getRoom())
                                 .mission(mission)
                                 .videoUrl(null)
-
                                 .status(Submission.SubmissionStatus.MISSED)
                                 .build());
+                    }
+                }
+
+                // SUBMITTED 유저 도감 기록 생성
+                for (Submission submission : submissions) {
+                    if (submission.getStatus() == Submission.SubmissionStatus.SUBMITTED
+                            && !collectionRecordRepository.existsBySubmission(submission)) {
+                        collectionRecordRepository.save(CollectionRecord.builder()
+                                .user(submission.getUser())
+                                .missionTemplate(mission.getMissionTemplate())
+                                .room(mission.getRoom())
+                                .submission(submission)
+                                .date(mission.getDate())
+                                .thumbnail(submission.getVideoUrl())
+                                .build());
+                        log.info("도감 기록 생성: userId={}, missionTemplateId={}",
+                                submission.getUser().getId(), mission.getMissionTemplate().getId());
                     }
                 }
 

@@ -7,6 +7,7 @@ package com.synk.repository;
 
 import com.synk.entity.CollectionRecord;
 import com.synk.entity.MissionTemplate;
+import com.synk.entity.Submission;
 import com.synk.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -20,4 +21,6 @@ public interface CollectionRecordRepository extends
     List<CollectionRecord> findByUserAndMissionTemplate(User user, MissionTemplate missionTemplate);
 
     int countByUserAndMissionTemplate(User user, MissionTemplate missionTemplate);
+
+    boolean existsBySubmission(Submission submission);
 }
