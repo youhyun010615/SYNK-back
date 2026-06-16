@@ -19,7 +19,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 
 
@@ -71,36 +70,6 @@ public class MissionScheduler {
             }
         }
         log.info("당일 미션 생성 완료: {}", today);
-    }
-
-    // 방이 풀방 된 직후 당일 미션이 없으면 즉시 생성 (자정 스케줄러를 이미 지난 경우 대비)
-    @Transactional
-    public void createMissionsForRoom(Room room) {
-        LocalDate today = LocalDate.now();
-        List<Mission> existing = missionRepository.findByRoomAndDate(room, today);
-        if (!existing.isEmpty()) return;
-
-        List<MissionTemplate> templates = missionTemplateRepository.findAll();
-        List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
-
-        List<MissionTimeSlot> availableSlots = allSlots.stream()
-                .filter(slot -> !slot.getSlotTime().isBefore(room.getMissionStartTime())
-                        && !slot.getSlotTime().isAfter(room.getMissionEndTime()))
-                .collect(java.util.stream.Collectors.toList());
-
-        Collections.shuffle(availableSlots);
-        Collections.shuffle(templates, new Random());
-
-        int count = Math.min(room.getDailyMissionCount(), availableSlots.size());
-        for (int i = 0; i < count; i++) {
-            missionRepository.save(Mission.builder()
-                    .room(room)
-                    .missionTemplate(templates.get(i % templates.size()))
-                    .timeSlot(availableSlots.get(i))
-                    .date(today)
-                    .build());
-        }
-        log.info("풀방 즉시 미션 생성 완료: roomId={}, date={}", room.getId(), today);
     }
 
     // 매분 PENDING → ACTIVE
