@@ -45,6 +45,9 @@ public class MissionScheduler {
         List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
 
         for (Room room : rooms) {
+            int currentMembers = roomMemberRepository.countByRoom(room);
+            if (currentMembers < room.getMaxMembers()) continue; // 풀방이 아니면 미션 생성 안 함
+
             List<MissionTimeSlot> availableSlots =
                     allSlots.stream()
                             .filter(slot ->
