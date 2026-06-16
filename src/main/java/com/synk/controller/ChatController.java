@@ -3,11 +3,18 @@ package com.synk.controller;
 import com.synk.dto.request.AddReactionRequest;
 import com.synk.dto.request.SendMessageRequest;
 import com.synk.dto.response.ChatMessageResponse;
+import com.synk.dto.response.ChatSocketResponse;
 import com.synk.global.response.ApiResponse;
 import com.synk.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/rooms/{roomId}/chats")
@@ -15,6 +22,17 @@ import org.springframework.web.bind.annotation.*;
 public class ChatController {
 
     private final ChatService chatService;
+
+    // WebSocket STOMP: 메시지 발행 → 방 전체 브로드캐스트
+    @MessageMapping("/rooms/{roomId}/chat")
+    @SendTo("/topic/rooms/{roomId}")
+    public ChatSocketResponse handleMessage(
+            @DestinationVariable Long roomId,
+            SendMessageRequest request,
+            Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+        return chatService.sendMessageViaSocket(roomId, userId, request);
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<ChatMessageResponse>>
