@@ -31,13 +31,13 @@ public class User extends BaseTimeEntity {
     @Column(name = "auth_provider_id", nullable = false, length = 255)
     private String authProviderId;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 1000)
     private String name;
 
-    @Column(name = "profile_image", length = 255)
+    @Column(name = "profile_image", length = 1000)
     private String profileImage;
 
-    @Column(name = "fcm_token", length = 255)
+    @Column(name = "fcm_token", length = 1000)
     private String fcmToken;
 
     @Column(nullable = false, length = 20)
