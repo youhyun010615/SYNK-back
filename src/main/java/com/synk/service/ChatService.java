@@ -5,6 +5,7 @@ package com.synk.service;
 import com.synk.dto.request.AddReactionRequest;
 import com.synk.dto.request.SendMessageRequest;
 import com.synk.dto.response.ChatMessageResponse;
+import com.synk.dto.response.ChatSocketResponse;
 import com.synk.entity.*;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
@@ -68,6 +69,35 @@ public class ChatService {
                         .build());
 
         return chat.getId();
+    }
+
+    @Transactional
+    public ChatSocketResponse sendMessageViaSocket(Long roomId, Long userId, SendMessageRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        Room room = getRoom(roomId);
+        validateMember(user, room);
+
+        RoomChat.MessageType messageType = request.getMessageType() != null
+                ? request.getMessageType()
+                : RoomChat.MessageType.TEXT;
+
+        RoomChat chat = roomChatRepository.save(RoomChat.builder()
+                .room(room)
+                .user(user)
+                .messageType(messageType)
+                .content(request.getContent())
+                .build());
+
+        return ChatSocketResponse.builder()
+                .messageId(chat.getId())
+                .userId(user.getId())
+                .userName(user.getName())
+                .profileImage(user.getProfileImage())
+                .messageType(messageType.name())
+                .content(chat.getContent())
+                .createdAt(chat.getCreatedAt())
+                .build();
     }
 
     @Transactional
