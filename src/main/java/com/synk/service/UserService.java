@@ -44,6 +44,12 @@ public class UserService {
     }
 
     @Transactional
+    public void updateFcmToken(String fcmToken) {
+        User user = getUser();
+        user.updateFcmToken(fcmToken);
+    }
+
+    @Transactional
     public void withdraw() {
         User user = getUser();
         user.withdraw();
