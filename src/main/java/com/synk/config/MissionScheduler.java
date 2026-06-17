@@ -17,6 +17,7 @@ import
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -79,11 +80,13 @@ public class MissionScheduler {
     @Scheduled(fixedDelay = 60000) // 60초
     @Transactional
     public void activateMissions() {
-        LocalTime now = LocalTime.now().withSecond(0).withNano(0);
+        ZoneId kst = ZoneId.of("Asia/Seoul");
+        LocalTime now = LocalTime.now(kst).withSecond(0).withNano(0);
+        LocalDate today = LocalDate.now(kst);
         List<Mission> pendingMissions = missionRepository.findByStatus(Mission.MissionStatus.PENDING);
 
         for (Mission mission : pendingMissions) {
-            if (mission.getDate().equals(LocalDate.now())
+            if (mission.getDate().equals(today)
                     &&
                     mission.getTimeSlot().getSlotTime().equals(now)) {
                 mission.activate();
@@ -111,7 +114,7 @@ public class MissionScheduler {
     @Scheduled(fixedDelay = 60000)
     @Transactional
     public void processExpiredMissions() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         List<Mission> activeMissions = missionRepository.findByStatus(Mission.MissionStatus.ACTIVE);
 
         for (Mission mission : activeMissions) {
