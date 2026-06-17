@@ -47,21 +47,27 @@ public class MissionService {
                 throw new
                         CustomException(ErrorCode.ROOM_ACCESS_DENIED);
             }
+            List<RoomMember> members = roomMemberRepository.findByRoom(room);
             return missionRepository.findByRoomAndStatus(room,
                             Mission.MissionStatus.ACTIVE)
                     .stream()
-                    .map(ActiveMissionResponse::from)
+                    .map(m -> ActiveMissionResponse.from(m, members,
+                            submissionRepository.findByMission(m)))
                     .toList();
         }
 
         List<RoomMember> myRooms =
                 roomMemberRepository.findByUser(user);
         return myRooms.stream()
-                .flatMap(rm -> missionRepository
-                        .findByRoomAndStatus(rm.getRoom(),
-                                Mission.MissionStatus.ACTIVE)
-                        .stream())
-                .map(ActiveMissionResponse::from)
+                .flatMap(rm -> {
+                    List<RoomMember> members = roomMemberRepository.findByRoom(rm.getRoom());
+                    return missionRepository
+                            .findByRoomAndStatus(rm.getRoom(),
+                                    Mission.MissionStatus.ACTIVE)
+                            .stream()
+                            .map(m -> ActiveMissionResponse.from(m, members,
+                                    submissionRepository.findByMission(m)));
+                })
                 .toList();
     }
 
