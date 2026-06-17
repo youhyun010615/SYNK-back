@@ -93,5 +93,12 @@ public class RoomController {
                 "방 목록 조회 성공"));
     }
 
+    // 임시 테스트용 - FCM 알림 수동 발송
+    @PostMapping("/{roomId}/test-notification")
+    public ResponseEntity<ApiResponse<Void>> testNotification(@PathVariable Long roomId) {
+        roomService.sendTestNotification(roomId);
+        return ResponseEntity.ok(ApiResponse.success("테스트 알림 발송 완료"));
+    }
+
 }
 
