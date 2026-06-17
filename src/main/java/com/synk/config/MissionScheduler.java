@@ -6,6 +6,7 @@ package com.synk.config;
 
 import com.synk.entity.*;
 import com.synk.repository.*;
+import com.synk.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,6 +35,7 @@ public class MissionScheduler {
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final SubmissionRepository submissionRepository;
     private final CollectionRecordRepository collectionRecordRepository;
+    private final FcmService fcmService;
 
     // 자정에 당일 미션 생성 (KST 기준)
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
@@ -86,6 +88,21 @@ public class MissionScheduler {
                     mission.getTimeSlot().getSlotTime().equals(now)) {
                 mission.activate();
                 log.info("미션 활성화: missionId={}", mission.getId());
+
+                String missionName = mission.getMissionTemplate().getName();
+                List<RoomMember> members = roomMemberRepository.findByRoom(mission.getRoom());
+                for (RoomMember member : members) {
+                    User user = member.getUser();
+                    if (user.isMissionAlert()) {
+                        fcmService.sendAndSave(
+                                user,
+                                Notification.NotificationType.MISSION_START,
+                                "미션 시작!",
+                                "지금 바로 미션을 수행하세요: " + missionName,
+                                mission.getId()
+                        );
+                    }
+                }
             }
         }
     }

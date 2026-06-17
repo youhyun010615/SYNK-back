@@ -38,3 +38,4 @@ out/
 
 ### Secret ###
 application-local.yaml
+src/main/resources/firebase-service-account.json
