@@ -3,6 +3,8 @@
 
 package com.synk.service;
 
+import com.synk.entity.Notification;
+import com.synk.service.FcmService;
 import com.synk.dto.request.CreateRoomRequest;
 import com.synk.dto.request.JoinRoomRequest;
 import com.synk.dto.request.UpdateRoomRequest;
@@ -39,6 +41,7 @@ public class RoomService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request) {
@@ -244,6 +247,21 @@ public class RoomService {
                 .build();
     }
 
+
+    @Transactional
+    public void sendTestNotification(Long roomId) {
+        Room room = getRoom(roomId);
+        List<RoomMember> members = roomMemberRepository.findByRoom(room);
+        for (RoomMember member : members) {
+            fcmService.sendAndSave(
+                    member.getUser(),
+                    Notification.NotificationType.MISSION_START,
+                    "미션 시작!",
+                    room.getName() + " 방에 미션이 시작됐어요!",
+                    roomId
+            );
+        }
+    }
 
     private String generateCode() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 5).toUpperCase();
