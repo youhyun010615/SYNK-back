@@ -19,7 +19,9 @@ public class CorsConfig {
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "https://synk-front.vercel.app"
+                "https://synk-front.vercel.app",
+                "https://synk.ai.kr",
+                "https://*.synk.ai.kr"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
