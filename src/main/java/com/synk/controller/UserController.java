@@ -39,6 +39,12 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("알림 설정 변경 완료"));
     }
 
+    @PutMapping("/fcm-token")
+    public ResponseEntity<ApiResponse<Void>> updateFcmToken(@RequestBody java.util.Map<String, String> body) {
+        userService.updateFcmToken(body.get("fcmToken"));
+        return ResponseEntity.ok(ApiResponse.success("FCM 토큰 저장 완료"));
+    }
+
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> withdraw() {
         userService.withdraw();
