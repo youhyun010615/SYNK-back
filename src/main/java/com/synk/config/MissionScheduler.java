@@ -89,7 +89,7 @@ public class MissionScheduler {
                 mission.activate();
                 log.info("미션 활성화: missionId={}", mission.getId());
 
-                String missionName = mission.getMissionTemplate().getName();
+                String missionName = mission.getMissionTemplate().getTitle();
                 List<RoomMember> members = roomMemberRepository.findByRoom(mission.getRoom());
                 for (RoomMember member : members) {
                     User user = member.getUser();
