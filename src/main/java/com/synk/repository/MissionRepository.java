@@ -18,6 +18,8 @@ public interface MissionRepository extends JpaRepository<Mission,
 
     List<Mission> findByRoomAndDate(Room room, LocalDate date);
 
+    List<Mission> findByRoom(Room room);
+
     List<Mission> findByStatus(Mission.MissionStatus status);
 
     List<Mission> findByRoomAndStatus(Room room, Mission.MissionStatus status);

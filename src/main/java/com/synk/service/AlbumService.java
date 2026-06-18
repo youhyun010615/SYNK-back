@@ -36,7 +36,7 @@ public class AlbumService {
         Room room = getRoom(roomId);
         validateMember(user, room);
 
-        List<Mission> missions = missionRepository.findByRoomAndDate(room, LocalDate.now());
+        List<Mission> missions = missionRepository.findByRoom(room);
 
         Map<LocalDate, List<Mission>> missionsByDate = missions.stream()
                         .collect(Collectors.groupingBy(Mission::getDate));
