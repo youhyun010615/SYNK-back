@@ -50,6 +50,21 @@ public class NotificationService {
                 .build();
     }
 
+    @Transactional
+    public void markRead(Long notificationId) {
+        User user = getUser();
+        Notification notification = notificationRepository.findByIdAndUser(notificationId, user)
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REQUEST));
+        notification.read();
+    }
+
+    @Transactional
+    public void markAllRead() {
+        User user = getUser();
+        List<Notification> all = notificationRepository.findByUserOrderByCreatedAtDesc(user);
+        all.forEach(Notification::read);
+    }
+
     private User getUser() {
         Long userId = SecurityUtil.getCurrentUserId();
         return userRepository.findById(userId)

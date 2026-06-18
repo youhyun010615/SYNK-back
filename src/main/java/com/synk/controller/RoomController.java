@@ -65,10 +65,15 @@ public class RoomController {
     }
 
     @DeleteMapping("/{roomId}/leave")
-    public ResponseEntity<ApiResponse<Void>> leaveRoom(@PathVariable
-                                                       Long roomId) {
+    public ResponseEntity<ApiResponse<Void>> leaveRoom(@PathVariable Long roomId) {
         roomService.leaveRoom(roomId);
         return ResponseEntity.ok(ApiResponse.success("방 나가기 완료"));
+    }
+
+    @DeleteMapping("/{roomId}")
+    public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable Long roomId) {
+        roomService.deleteRoom(roomId);
+        return ResponseEntity.ok(ApiResponse.success("방 삭제 완료"));
     }
 
     @DeleteMapping("/{roomId}/members/{userId}")

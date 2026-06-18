@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -26,6 +27,7 @@ public class ChatService {
     private final RoomChatRepository roomChatRepository;
     private final ChatReactionRepository chatReactionRepository;
     private final UserRepository userRepository;
+    private final MissionRepository missionRepository;
 
     @Transactional(readOnly = true)
     public ChatMessageResponse getChats(Long roomId) {
@@ -44,9 +46,16 @@ public class ChatService {
                         })
                         .toList();
 
+        LocalDate today = LocalDate.now();
+        boolean todayMissionCompleted = missionRepository.findByRoomAndDate(room, today)
+                .stream()
+                .anyMatch(m -> m.getStatus() == Mission.MissionStatus.COMPLETED);
+
         return ChatMessageResponse.builder()
                 .roomName(room.getName())
                 .memberCount(memberCount)
+                .todayMissionCompleted(todayMissionCompleted)
+                .todayMissionDate(today.toString())
                 .messages(messages)
                 .build();
     }

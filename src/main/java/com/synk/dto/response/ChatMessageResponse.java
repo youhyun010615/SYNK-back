@@ -19,6 +19,8 @@ public class ChatMessageResponse {
 
     private String roomName;
     private int memberCount;
+    private boolean todayMissionCompleted;
+    private String todayMissionDate;
     private List<MessageInfo> messages;
 
     @Getter
