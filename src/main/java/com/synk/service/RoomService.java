@@ -167,6 +167,15 @@ public class RoomService {
         roomMemberRepository.delete(member);
     }
 
+    @Transactional
+    public void deleteRoom(Long roomId) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateOwner(user, room);
+        roomMemberRepository.deleteAllByRoom(room);
+        roomRepository.delete(room);
+    }
+
     private User getUser() {
         Long userId = SecurityUtil.getCurrentUserId();
         return userRepository.findById(userId)

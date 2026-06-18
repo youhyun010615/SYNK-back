@@ -24,5 +24,5 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
 
     int countByRoom(Room room);
 
-
+    void deleteAllByRoom(Room room);
 }
