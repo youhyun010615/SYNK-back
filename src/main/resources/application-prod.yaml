@@ -24,6 +24,14 @@ aws:
   s3:
     bucket: ${AWS_S3_BUCKET:synk-videos}
     region: ${AWS_REGION:ap-northeast-2}
+  lambda:
+    function-name: ${AWS_LAMBDA_COLLAGE_FUNCTION:synk-collage}
+    region: ${AWS_REGION:ap-northeast-2}
   credentials:
     access-key: ${AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY}
+
+collage:
+  callback:
+    secret: ${COLLAGE_CALLBACK_SECRET}
+  callback-url: ${COLLAGE_CALLBACK_URL:https://api.synk.ai.kr/api/collages/callback}

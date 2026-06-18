@@ -6,6 +6,7 @@ package com.synk.config;
 
 import com.synk.entity.*;
 import com.synk.repository.*;
+import com.synk.service.CollageService;
 import com.synk.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,9 @@ public class MissionScheduler {
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final SubmissionRepository submissionRepository;
     private final CollectionRecordRepository collectionRecordRepository;
+    private final CollageRepository collageRepository;
     private final FcmService fcmService;
+    private final CollageService collageService;
 
     // 자정에 당일 미션 생성 (KST 기준)
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
@@ -158,6 +161,14 @@ public class MissionScheduler {
 
                 mission.complete();
                 log.info("미션 완료 처리: missionId={}", mission.getId());
+
+                // 콜라주 미생성 + 제출자 있으면 트리거
+                boolean hasSubmissions = submissions.stream()
+                        .anyMatch(s -> s.getStatus() == Submission.SubmissionStatus.SUBMITTED);
+                boolean collageExists = collageRepository.findByMission(mission).isPresent();
+                if (hasSubmissions && !collageExists) {
+                    collageService.triggerCollageIfReady(mission);
+                }
             }
         }
     }
