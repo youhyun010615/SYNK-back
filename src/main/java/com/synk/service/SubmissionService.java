@@ -13,6 +13,7 @@ import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.repository.MissionRepository;
+import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
 import com.synk.repository.SubmissionRepository;
 import com.synk.repository.UserRepository;
@@ -32,7 +33,9 @@ public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final MissionRepository missionRepository;
     private final RoomRepository roomRepository;
+    private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
+    private final CollageService collageService;
 
     @Transactional
     public SubmissionResponse submit(SubmissionRequest request) {
@@ -64,6 +67,15 @@ public class SubmissionService {
                         .videoUrl(request.getVideoUrl())
                         .status(Submission.SubmissionStatus.SUBMITTED)
                         .build());
+
+        // 전원 제출 시 즉시 콜라주 트리거
+        int totalMembers = roomMemberRepository.countByRoom(room);
+        long submittedCount = submissionRepository.findByMission(mission).stream()
+                .filter(s -> s.getStatus() == Submission.SubmissionStatus.SUBMITTED)
+                .count();
+        if (submittedCount >= totalMembers) {
+            collageService.triggerCollageIfReady(mission);
+        }
 
         return SubmissionResponse.from(submission);
     }
