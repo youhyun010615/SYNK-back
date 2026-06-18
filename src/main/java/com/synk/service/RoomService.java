@@ -19,6 +19,8 @@ import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.repository.MissionRepository;
+import com.synk.repository.MissionTemplateRepository;
+import com.synk.repository.MissionTimeSlotRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
 import com.synk.repository.UserRepository;
@@ -28,8 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.synk.dto.response.MyRoomsResponse;
 import com.synk.entity.Mission;
+import com.synk.entity.MissionTemplate;
+import com.synk.entity.MissionTimeSlot;
 
-
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,6 +45,8 @@ public class RoomService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final MissionTemplateRepository missionTemplateRepository;
+    private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final FcmService fcmService;
 
     @Transactional
@@ -249,8 +255,27 @@ public class RoomService {
 
 
     @Transactional
-    public void sendTestNotification(Long roomId) {
+    public Long sendTestNotification(Long roomId) {
         Room room = getRoom(roomId);
+
+        // 기존 테스트 미션(ACTIVE) 있으면 재사용
+        List<Mission> existing = missionRepository.findByRoomAndStatus(room, Mission.MissionStatus.ACTIVE);
+        Mission mission;
+        if (!existing.isEmpty()) {
+            mission = existing.get(0);
+        } else {
+            MissionTemplate template = missionTemplateRepository.findAll().get(0);
+            MissionTimeSlot slot = missionTimeSlotRepository.findAll().get(0);
+            mission = missionRepository.save(Mission.builder()
+                    .room(room)
+                    .missionTemplate(template)
+                    .timeSlot(slot)
+                    .date(LocalDate.now())
+                    .build());
+            mission.activate();
+            missionRepository.save(mission);
+        }
+
         List<RoomMember> members = roomMemberRepository.findByRoom(room);
         for (RoomMember member : members) {
             fcmService.sendAndSave(
@@ -258,9 +283,10 @@ public class RoomService {
                     Notification.NotificationType.MISSION_START,
                     "미션 시작!",
                     room.getName() + " 방에 미션이 시작됐어요!",
-                    roomId
+                    mission.getId()
             );
         }
+        return mission.getId();
     }
 
     private String generateCode() {
