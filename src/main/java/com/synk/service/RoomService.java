@@ -34,6 +34,8 @@ import com.synk.entity.MissionTemplate;
 import com.synk.entity.MissionTimeSlot;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -265,12 +267,23 @@ public class RoomService {
             mission = existing.get(0);
         } else {
             MissionTemplate template = missionTemplateRepository.findAll().get(0);
-            MissionTimeSlot slot = missionTimeSlotRepository.findAll().get(0);
+
+            // 현재 KST 시간에 맞는 슬롯을 찾거나 새로 생성 (deadline = 지금 + 5분 보장)
+            LocalTime nowKst = LocalTime.now(ZoneId.of("Asia/Seoul")).withSecond(0).withNano(0);
+            MissionTimeSlot slot = missionTimeSlotRepository.findBySlotTime(nowKst)
+                    .orElseGet(() -> missionTimeSlotRepository.save(
+                            MissionTimeSlot.builder().slotTime(nowKst).build()));
+
+            // 같은 날 같은 방 같은 슬롯 unique 제약 충돌 방지: 날짜를 내일로
+            LocalDate missionDate = missionRepository.existsByRoomAndDateAndTimeSlot(room, LocalDate.now(), slot)
+                    ? LocalDate.now().plusDays(1)
+                    : LocalDate.now();
+
             mission = missionRepository.save(Mission.builder()
                     .room(room)
                     .missionTemplate(template)
                     .timeSlot(slot)
-                    .date(LocalDate.now())
+                    .date(missionDate)
                     .build());
             mission.activate();
             missionRepository.save(mission);

@@ -6,6 +6,7 @@
 package com.synk.repository;
 
 import com.synk.entity.Mission;
+import com.synk.entity.MissionTimeSlot;
 import com.synk.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -20,4 +21,6 @@ public interface MissionRepository extends JpaRepository<Mission,
     List<Mission> findByStatus(Mission.MissionStatus status);
 
     List<Mission> findByRoomAndStatus(Room room, Mission.MissionStatus status);
+
+    boolean existsByRoomAndDateAndTimeSlot(Room room, LocalDate date, MissionTimeSlot timeSlot);
 }
