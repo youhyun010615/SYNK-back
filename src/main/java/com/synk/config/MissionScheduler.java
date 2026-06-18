@@ -68,10 +68,12 @@ public class MissionScheduler {
             int count = Math.min(room.getDailyMissionCount(), availableSlots.size());
 
             for (int i = 0; i < count; i++) {
+                MissionTimeSlot slot = availableSlots.get(i);
+                if (missionRepository.existsByRoomAndDateAndTimeSlot(room, today, slot)) continue;
                 missionRepository.save(Mission.builder()
                         .room(room)
                         .missionTemplate(templates.get(i % templates.size()))
-                        .timeSlot(availableSlots.get(i))
+                        .timeSlot(slot)
                         .date(today)
                         .build());
             }
