@@ -149,8 +149,12 @@ public class CollageService {
     public List<CollageResponse> getCollagesForDate(Long roomId, LocalDate date) {
         com.synk.entity.Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+        List<com.synk.entity.RoomMember> members = roomMemberRepository.findByRoom(room);
         return collageRepository.findByRoomAndMission_Date(room, date).stream()
-                .map(CollageResponse::from)
+                .map(collage -> {
+                    List<Submission> submissions = submissionRepository.findByMission(collage.getMission());
+                    return CollageResponse.from(collage, members, submissions);
+                })
                 .toList();
     }
 }
