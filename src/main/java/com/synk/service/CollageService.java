@@ -39,7 +39,7 @@ public class CollageService {
     private final RoomMemberRepository roomMemberRepository;
     private final RoomRepository roomRepository;
     private final LambdaClient lambdaClient;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${aws.lambda.function-name}")
     private String lambdaFunctionName;
