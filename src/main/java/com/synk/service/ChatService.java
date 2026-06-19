@@ -61,7 +61,7 @@ public class ChatService {
     }
 
     @Transactional
-    public Long sendMessage(Long roomId, SendMessageRequest request) {
+    public ChatSocketResponse sendMessage(Long roomId, SendMessageRequest request) {
         User user = getUser();
         Room room = getRoom(roomId);
         validateMember(user, room);
@@ -77,7 +77,11 @@ public class ChatService {
                         .content(request.getContent())
                         .build());
 
-        return chat.getId();
+        return ChatSocketResponse.builder()
+                .messageId(chat.getId())
+                .userId(user.getId())
+                .createdAt(chat.getCreatedAt())
+                .build();
     }
 
     @Transactional

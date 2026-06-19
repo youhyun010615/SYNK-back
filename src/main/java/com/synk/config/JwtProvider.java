@@ -18,6 +18,7 @@ import java.util.Date;
 public class JwtProvider {
     private final SecretKey secretKey;
     private final long expiration;
+    private static final long REFRESH_EXPIRATION = 1000L * 60 * 60 * 24 * 30; // 30일
 
     public JwtProvider(
             @Value("${jwt.secret}") String secret,
@@ -29,10 +30,34 @@ public class JwtProvider {
     public String generateToken(Long userId) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("type", "access")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public String generateRefreshToken(Long userId) {
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claim("type", "refresh")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "refresh".equals(claims.get("type", String.class));
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     public Long getUserId(String token) {

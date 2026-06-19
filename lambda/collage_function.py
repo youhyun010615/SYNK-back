@@ -34,7 +34,8 @@ def get_cells(rows_config):
     row_h = CANVAS_H // n_rows
     cells = []
     y = 0
-    for cols in rows_config:
+    for row in rows_config:
+        cols = row[0]
         cell_w = CANVAS_W // cols
         for col in range(cols):
             cells.append((cell_w, row_h, col * cell_w, y))

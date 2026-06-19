@@ -3,6 +3,7 @@
 package com.synk.service;
 
 import com.synk.dto.request.SubmissionRequest;
+import com.synk.dto.response.RoomEventResponse;
 import com.synk.dto.response.SubmissionDetailResponse;
 import com.synk.dto.response.SubmissionResponse;
 import com.synk.dto.response.SubmissionStatusResponse;
@@ -19,6 +20,7 @@ import com.synk.repository.SubmissionRepository;
 import com.synk.repository.UserRepository;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,7 @@ public class SubmissionService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final CollageService collageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public SubmissionResponse submit(SubmissionRequest request) {
@@ -76,6 +79,12 @@ public class SubmissionService {
         if (submittedCount >= totalMembers) {
             collageService.triggerCollageIfReady(mission);
         }
+
+        // WebSocket MEMBER_SUBMITTED 이벤트 push
+        messagingTemplate.convertAndSend(
+                "/topic/rooms/" + room.getId(),
+                RoomEventResponse.memberSubmitted(mission.getId(), user.getId(), (int) submittedCount, totalMembers)
+        );
 
         return SubmissionResponse.from(submission);
     }
