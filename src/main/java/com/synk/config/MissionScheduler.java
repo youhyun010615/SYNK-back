@@ -4,16 +4,17 @@
 
 package com.synk.config;
 
+import com.synk.dto.response.RoomEventResponse;
 import com.synk.entity.*;
 import com.synk.repository.*;
 import com.synk.service.CollageService;
 import com.synk.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import
-        org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +41,7 @@ public class MissionScheduler {
     private final CollageRepository collageRepository;
     private final FcmService fcmService;
     private final CollageService collageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 자정에 당일 미션 생성 (KST 기준)
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
@@ -111,6 +113,12 @@ public class MissionScheduler {
                         );
                     }
                 }
+
+                // WebSocket MISSION_FIRED 이벤트 push
+                messagingTemplate.convertAndSend(
+                        "/topic/rooms/" + mission.getRoom().getId(),
+                        RoomEventResponse.missionFired(mission.getId(), missionName, mission.getDeadline())
+                );
             }
         }
     }

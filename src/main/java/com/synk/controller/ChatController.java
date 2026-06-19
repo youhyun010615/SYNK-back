@@ -43,12 +43,12 @@ public class ChatController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Long>> sendMessage(
+    public ResponseEntity<ApiResponse<ChatSocketResponse>> sendMessage(
             @PathVariable Long roomId,
             @RequestBody SendMessageRequest request) {
-        Long messageId = chatService.sendMessage(roomId, request);
+        ChatSocketResponse response = chatService.sendMessage(roomId, request);
 
-        return ResponseEntity.ok(ApiResponse.success(messageId, "메시지 전송 완료"));
+        return ResponseEntity.ok(ApiResponse.success(response, "메시지 전송 완료"));
     }
 
     @PostMapping("/{messageId}/reactions")

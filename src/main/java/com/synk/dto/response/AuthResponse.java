@@ -11,6 +11,7 @@ import lombok.Getter;
 public class AuthResponse {
 
     private String token;
+    private String refreshToken;
     private boolean isNewUser;
     private Long userId;
     private String name;
