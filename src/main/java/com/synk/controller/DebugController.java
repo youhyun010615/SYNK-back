@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collections;
+import java.util.List;
 
 @RestController
 @RequestMapping("/debug")
@@ -41,7 +43,9 @@ public class DebugController {
                     throw new CustomException(ErrorCode.INVALID_REQUEST);
                 });
 
-        MissionTemplate template = missionTemplateRepository.findAll().get(0);
+        List<MissionTemplate> templates = missionTemplateRepository.findAll();
+        Collections.shuffle(templates);
+        MissionTemplate template = templates.get(0);
 
         LocalTime now = LocalTime.now().withSecond(0).withNano(0);
         MissionTimeSlot slot = missionTimeSlotRepository.findBySlotTime(now)
