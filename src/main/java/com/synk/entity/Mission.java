@@ -47,6 +47,8 @@ public class Mission {
             updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "deadline")
+    private LocalDateTime deadline;
 
     @Builder
     public Mission(Room room, MissionTemplate
@@ -70,11 +72,12 @@ public class Mission {
     }
 
     public LocalDateTime getDeadline() {
-        return getTargetedAt().plusMinutes(5);
+        return deadline != null ? deadline : getTargetedAt().plusMinutes(5);
     }
 
     public void activate() {
         this.status = MissionStatus.ACTIVE;
+        this.deadline = LocalDateTime.now().plusMinutes(5);
     }
 
     public void complete() {
