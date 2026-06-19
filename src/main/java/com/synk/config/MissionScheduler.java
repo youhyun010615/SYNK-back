@@ -153,6 +153,8 @@ public class MissionScheduler {
                 }
 
                 // SUBMITTED 유저 도감 기록 생성
+                String collageThumbnail = collageRepository.findByMission(mission)
+                        .map(Collage::getThumbnail).orElse(null);
                 for (Submission submission : submissions) {
                     if (submission.getStatus() == Submission.SubmissionStatus.SUBMITTED
                             && !collectionRecordRepository.existsBySubmission(submission)) {
@@ -162,7 +164,7 @@ public class MissionScheduler {
                                 .room(mission.getRoom())
                                 .submission(submission)
                                 .date(mission.getDate())
-                                .thumbnail(submission.getVideoUrl())
+                                .thumbnail(collageThumbnail)
                                 .build());
                         log.info("도감 기록 생성: userId={}, missionTemplateId={}",
                                 submission.getUser().getId(), mission.getMissionTemplate().getId());
