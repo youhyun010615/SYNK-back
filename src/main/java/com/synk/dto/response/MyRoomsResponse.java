@@ -2,6 +2,7 @@
 
 package com.synk.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -21,6 +22,7 @@ public class MyRoomsResponse {
         private String name;
         private int totalMissions;
         private int completedMissions;
+        @JsonProperty("isAllCompleted")
         private boolean isAllCompleted;
         private String roomThumbnail;
         private List<MemberProfile> memberProfiles;

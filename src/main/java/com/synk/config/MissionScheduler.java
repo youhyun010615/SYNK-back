@@ -117,7 +117,7 @@ public class MissionScheduler {
                 // WebSocket MISSION_FIRED 이벤트 push
                 messagingTemplate.convertAndSend(
                         "/topic/rooms/" + mission.getRoom().getId(),
-                        RoomEventResponse.missionFired(mission.getId(), missionName, mission.getDeadline())
+                        RoomEventResponse.missionFired(mission.getRoom().getId(), mission.getId(), missionName, mission.getDeadline())
                 );
             }
         }

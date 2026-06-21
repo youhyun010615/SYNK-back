@@ -83,7 +83,7 @@ public class SubmissionService {
         // WebSocket MEMBER_SUBMITTED 이벤트 push
         messagingTemplate.convertAndSend(
                 "/topic/rooms/" + room.getId(),
-                RoomEventResponse.memberSubmitted(mission.getId(), user.getId(), (int) submittedCount, totalMembers)
+                RoomEventResponse.memberSubmitted(room.getId(), mission.getId(), user.getId(), (int) submittedCount, totalMembers)
         );
 
         return SubmissionResponse.from(submission);
