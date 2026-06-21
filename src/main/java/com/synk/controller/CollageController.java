@@ -33,4 +33,11 @@ public class CollageController {
         List<CollageResponse> response = collageService.getCollagesForDate(roomId, date);
         return ResponseEntity.ok(ApiResponse.success(response, "콜라주 목록 조회 성공"));
     }
+
+    @GetMapping("/api/missions/{missionId}/collage")
+    public ResponseEntity<ApiResponse<CollageResponse>> getCollageByMission(
+            @PathVariable Long missionId) {
+        CollageResponse response = collageService.getCollageByMission(missionId);
+        return ResponseEntity.ok(ApiResponse.success(response, "콜라주 조회 성공"));
+    }
 }

@@ -163,4 +163,15 @@ public class CollageService {
                 })
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public CollageResponse getCollageByMission(Long missionId) {
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MISSION_NOT_FOUND));
+        Collage collage = collageRepository.findByMission(mission)
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REQUEST));
+        List<com.synk.entity.RoomMember> members = roomMemberRepository.findByRoom(mission.getRoom());
+        List<Submission> submissions = submissionRepository.findByMission(mission);
+        return CollageResponse.from(collage, members, submissions);
+    }
 }
