@@ -9,6 +9,7 @@ import com.synk.entity.Submission;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.repository.CollageRepository;
+import com.synk.repository.CollectionRecordRepository;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
@@ -34,6 +35,7 @@ import java.util.Map;
 public class CollageService {
 
     private final CollageRepository collageRepository;
+    private final CollectionRecordRepository collectionRecordRepository;
     private final MissionRepository missionRepository;
     private final SubmissionRepository submissionRepository;
     private final RoomMemberRepository roomMemberRepository;
@@ -139,6 +141,10 @@ public class CollageService {
                     submittedCount
             );
             log.info("콜라주 완료: missionId={}, url={}", request.getMissionId(), request.getCollageVideoUrl());
+
+            // 이 미션의 CollectionRecord 썸네일을 콜라주 썸네일로 업데이트
+            collectionRecordRepository.findBySubmission_Mission(mission)
+                    .forEach(record -> record.updateThumbnail(request.getThumbnailUrl()));
         } else {
             collage.fail();
             log.warn("콜라주 실패: missionId={}, error={}", request.getMissionId(), request.getError());

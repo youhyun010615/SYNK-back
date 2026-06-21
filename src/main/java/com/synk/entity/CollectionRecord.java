@@ -50,6 +50,10 @@ public class CollectionRecord {
             updatable = false)
     private LocalDateTime createdAt;
 
+    public void updateThumbnail(String thumbnail) {
+        this.thumbnail = thumbnail;
+    }
+
     @Builder
     public CollectionRecord(User user, MissionTemplate
                                     missionTemplate,

@@ -6,6 +6,7 @@
 package com.synk.repository;
 
 import com.synk.entity.CollectionRecord;
+import com.synk.entity.Mission;
 import com.synk.entity.MissionTemplate;
 import com.synk.entity.Submission;
 import com.synk.entity.User;
@@ -23,4 +24,6 @@ public interface CollectionRecordRepository extends
     int countByUserAndMissionTemplate(User user, MissionTemplate missionTemplate);
 
     boolean existsBySubmission(Submission submission);
+
+    List<CollectionRecord> findBySubmission_Mission(Mission mission);
 }
