@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +22,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AlbumService {
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
@@ -60,7 +63,7 @@ public class AlbumService {
                                     .build())
                             .toList();
 
-                    return AlbumResponse.from(date.toString(), collage, profiles);
+                    return AlbumResponse.from(date.format(DATE_FORMAT), collage, profiles);
                 }).toList();
     }
 
@@ -79,7 +82,7 @@ public class AlbumService {
                         .date(date)
                         .build());
 
-        return SynklogResponse.from(synklog);
+        return SynklogResponse.from(synklog, null);
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +90,8 @@ public class AlbumService {
         Room room = getRoom(roomId);
         Synklog synklog = synklogRepository.findByRoomAndDate(room, date)
                         .orElseThrow(() -> new CustomException(ErrorCode.SYNKLOG_NOT_FOUND));
-        return SynklogResponse.from(synklog);
+        List<Mission> dayMissions = missionRepository.findByRoomAndDate(room, date);
+        return SynklogResponse.from(synklog, dayMissions);
     }
 
     private User getUser() {

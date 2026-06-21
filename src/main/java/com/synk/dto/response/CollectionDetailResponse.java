@@ -7,6 +7,7 @@ import com.synk.entity.MissionTemplate;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Getter
@@ -29,11 +30,13 @@ public class CollectionDetailResponse {
         private String thumbnail;
         private String videoUrl;
 
+        private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
         public static RecordInfo from(CollectionRecord record) {
             return RecordInfo.builder()
                     .recordId(record.getId())
                     .roomName(record.getRoom().getName())
-                    .date(record.getDate().toString())
+                    .date(record.getDate().format(DATE_FORMAT))
                     .thumbnail(record.getThumbnail())
                     .videoUrl(record.getSubmission().getVideoUrl())
                     .build();
@@ -47,7 +50,7 @@ public class CollectionDetailResponse {
                 .toList();
 
         String lastDate = records.isEmpty() ? null :
-                records.get(0).getDate().toString();
+                records.get(0).getDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
 
         return CollectionDetailResponse.builder()
                 .missionId(template.getId())

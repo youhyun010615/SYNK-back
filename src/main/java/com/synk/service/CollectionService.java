@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +31,7 @@ public class CollectionService {
     private final UserRepository userRepository;
 
     private static final int TOTAL_MISSION_COUNT = 90;
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     @Transactional(readOnly = true)
     public CollectionResponse getCollections() {
@@ -46,7 +48,7 @@ public class CollectionService {
                         .map(entry -> {
                             MissionTemplate template = entry.getKey();
                             List<CollectionRecord> templateRecords = entry.getValue();
-                            String lastDate = templateRecords.get(0).getDate().toString();
+                            String lastDate = templateRecords.get(0).getDate().format(DATE_FORMAT);
                             String thumbnail = templateRecords.get(0).getThumbnail();
 
                             return CollectionResponse.MissionSummary.builder()
