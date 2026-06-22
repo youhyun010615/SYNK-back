@@ -48,7 +48,7 @@ public class MissionScheduler {
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
     public void createDailyMissions() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         List<Room> rooms = roomRepository.findAll();
         List<MissionTemplate> templates = missionTemplateRepository.findAll();
         List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
