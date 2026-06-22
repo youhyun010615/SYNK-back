@@ -51,6 +51,7 @@ public class AlbumService {
 
                     Collage collage = dayMissions.stream()
                             .flatMap(m -> collageRepository.findByMission(m).stream())
+                            .filter(c -> c.getThumbnail() != null)
                             .findFirst()
                             .orElse(null);
 
