@@ -13,6 +13,8 @@ import com.synk.entity.Submission;
 import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
+import com.synk.entity.CollectionRecord;
+import com.synk.repository.CollectionRecordRepository;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
@@ -38,6 +40,7 @@ public class SubmissionService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final CollageService collageService;
+    private final CollectionRecordRepository collectionRecordRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
@@ -71,12 +74,28 @@ public class SubmissionService {
                         .status(Submission.SubmissionStatus.SUBMITTED)
                         .build());
 
-        // 전원 제출 시 즉시 콜라주 트리거
+        // 전원 제출 시 즉시 미션 완료 처리
         int totalMembers = roomMemberRepository.countByRoom(room);
-        long submittedCount = submissionRepository.findByMission(mission).stream()
+        List<Submission> allSubmissions = submissionRepository.findByMission(mission);
+        long submittedCount = allSubmissions.stream()
                 .filter(s -> s.getStatus() == Submission.SubmissionStatus.SUBMITTED)
                 .count();
         if (submittedCount >= totalMembers) {
+            mission.complete();
+            // 도감 기록 생성
+            for (Submission s : allSubmissions) {
+                if (s.getStatus() == Submission.SubmissionStatus.SUBMITTED
+                        && !collectionRecordRepository.existsBySubmission(s)) {
+                    collectionRecordRepository.save(CollectionRecord.builder()
+                            .user(s.getUser())
+                            .missionTemplate(mission.getMissionTemplate())
+                            .room(room)
+                            .submission(s)
+                            .date(mission.getDate())
+                            .thumbnail(null)
+                            .build());
+                }
+            }
             collageService.triggerCollageIfReady(mission);
         }
 
