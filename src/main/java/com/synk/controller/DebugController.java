@@ -1,6 +1,5 @@
 package com.synk.controller;
 
-import com.synk.dto.response.AlbumResponse;
 import com.synk.entity.Mission;
 import com.synk.entity.MissionTemplate;
 import com.synk.entity.MissionTimeSlot;
@@ -15,17 +14,13 @@ import com.synk.repository.MissionTimeSlotRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/debug")
@@ -38,37 +33,6 @@ public class DebugController {
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final CollageRepository collageRepository;
     private final RoomMemberRepository roomMemberRepository;
-
-    /** 개발용: 인증 없이 특정 방의 앨범 목록 조회 */
-    @GetMapping("/rooms/{roomId}/albums")
-    public ResponseEntity<ApiResponse<List<AlbumResponse>>> debugAlbums(@PathVariable Long roomId) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
-
-        List<Mission> missions = missionRepository.findByRoom(room);
-        Map<LocalDate, List<Mission>> missionsByDate = missions.stream()
-                .collect(Collectors.groupingBy(Mission::getDate));
-
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-        List<AlbumResponse> result = missionsByDate.entrySet().stream()
-                .sorted(Map.Entry.<LocalDate, List<Mission>>comparingByKey().reversed())
-                .map(entry -> {
-                    var collage = entry.getValue().stream()
-                            .flatMap(m -> collageRepository.findByMission(m).stream())
-                            .filter(c -> c.getThumbnail() != null)
-                            .findFirst()
-                            .orElse(null);
-                    var profiles = roomMemberRepository.findByRoom(room).stream()
-                            .map(rm -> AlbumResponse.MemberProfile.builder()
-                                    .userId(rm.getUser().getId())
-                                    .profileImage(rm.getUser().getProfileImage())
-                                    .build())
-                            .toList();
-                    return AlbumResponse.from(entry.getKey().format(fmt), collage, profiles);
-                }).toList();
-
-        return ResponseEntity.ok(ApiResponse.success(result, "디버그 앨범 조회"));
-    }
 
     /** 개발용: 특정 방에 미션을 즉시 생성하고 ACTIVE 상태로 만든다. */
     @PostMapping("/rooms/{roomId}/trigger-mission")
