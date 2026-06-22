@@ -26,6 +26,7 @@ public class MyRoomsResponse {
         private boolean isAllCompleted;
         private String roomThumbnail;
         private List<MemberProfile> memberProfiles;
+        private Long lastMessageId;
     }
 
     @Getter

@@ -13,4 +13,6 @@ public interface RoomChatRepository extends
         JpaRepository<RoomChat, Long> {
 
     List<RoomChat> findByRoomOrderByCreatedAtAsc(Room room);
+
+    java.util.Optional<RoomChat> findTop1ByRoomOrderByCreatedAtDesc(Room room);
 }

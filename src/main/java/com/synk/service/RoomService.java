@@ -21,6 +21,7 @@ import com.synk.global.exception.ErrorCode;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.MissionTemplateRepository;
 import com.synk.repository.MissionTimeSlotRepository;
+import com.synk.repository.RoomChatRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
 import com.synk.repository.UserRepository;
@@ -49,6 +50,7 @@ public class RoomService {
     private final MissionRepository missionRepository;
     private final MissionTemplateRepository missionTemplateRepository;
     private final MissionTimeSlotRepository missionTimeSlotRepository;
+    private final RoomChatRepository roomChatRepository;
     private final FcmService fcmService;
 
     @Transactional
@@ -234,6 +236,11 @@ public class RoomService {
                                 Mission.MissionStatus.COMPLETED)
                         .count();
 
+                Long lastMessageId = roomChatRepository
+                        .findTop1ByRoomOrderByCreatedAtDesc(room)
+                        .map(chat -> chat.getId())
+                        .orElse(null);
+
                 active.add(MyRoomsResponse.ActiveRoom.builder()
                         .id(room.getId())
                         .name(room.getName())
@@ -243,6 +250,7 @@ public class RoomService {
                                 missions.size() && !missions.isEmpty())
                         .roomThumbnail(room.getThumbnail())
                         .memberProfiles(profiles)
+                        .lastMessageId(lastMessageId)
                         .build());
             } else {
 
