@@ -228,7 +228,7 @@ public class RoomService {
 
             if (currentMembers >= room.getMaxMembers()) {
                 List<Mission> missions = missionRepository.findByRoomAndDate(room,
-                                java.time.LocalDate.now());
+                                java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")));
                 int completed = (int) missions.stream()
                         .filter(m -> m.getStatus() ==
                                 Mission.MissionStatus.COMPLETED)
