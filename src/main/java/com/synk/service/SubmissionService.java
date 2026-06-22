@@ -14,7 +14,9 @@ import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.entity.CollectionRecord;
+import com.synk.entity.Synklog;
 import com.synk.repository.CollectionRecordRepository;
+import com.synk.repository.SynklogRepository;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
@@ -41,6 +43,7 @@ public class SubmissionService {
     private final UserRepository userRepository;
     private final CollageService collageService;
     private final CollectionRecordRepository collectionRecordRepository;
+    private final SynklogRepository synklogRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
@@ -97,6 +100,14 @@ public class SubmissionService {
                 }
             }
             collageService.triggerCollageIfReady(mission);
+
+            // Synklog 자동 생성
+            if (synklogRepository.findByRoomAndDate(room, mission.getDate()).isEmpty()) {
+                synklogRepository.save(Synklog.builder()
+                        .room(room)
+                        .date(mission.getDate())
+                        .build());
+            }
         }
 
         // WebSocket MEMBER_SUBMITTED 이벤트 push

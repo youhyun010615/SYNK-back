@@ -39,6 +39,7 @@ public class MissionScheduler {
     private final SubmissionRepository submissionRepository;
     private final CollectionRecordRepository collectionRecordRepository;
     private final CollageRepository collageRepository;
+    private final SynklogRepository synklogRepository;
     private final FcmService fcmService;
     private final CollageService collageService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -173,6 +174,14 @@ public class MissionScheduler {
 
                 mission.complete();
                 log.info("미션 완료 처리: missionId={}", mission.getId());
+
+                // Synklog 자동 생성
+                if (synklogRepository.findByRoomAndDate(mission.getRoom(), mission.getDate()).isEmpty()) {
+                    synklogRepository.save(Synklog.builder()
+                            .room(mission.getRoom())
+                            .date(mission.getDate())
+                            .build());
+                }
 
                 // 콜라주 미생성 + 제출자 있으면 트리거
                 boolean hasSubmissions = submissions.stream()
