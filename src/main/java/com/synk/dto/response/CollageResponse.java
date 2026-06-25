@@ -45,13 +45,14 @@ public class CollageResponse {
         List<CollageParticipant> participantList = members.stream()
                 .map(member -> {
                     Submission sub = submissionByUserId.get(member.getUser().getId());
+                    boolean submitted = sub != null && sub.getStatus() == Submission.SubmissionStatus.SUBMITTED;
                     return CollageParticipant.builder()
                             .userId(member.getUser().getId())
                             .name(member.getUser().getName())
                             .profileImage(member.getUser().getProfileImage())
-                            .videoUrl(sub != null ? sub.getVideoUrl() : null)
-                            .submittedAt(sub != null && sub.getSubmittedAt() != null ? sub.getSubmittedAt().toString() : null)
-                            .state(sub != null ? "done" : "waiting")
+                            .videoUrl(submitted ? sub.getVideoUrl() : null)
+                            .submittedAt(submitted && sub.getSubmittedAt() != null ? sub.getSubmittedAt().toString() : null)
+                            .state(submitted ? "done" : "waiting")
                             .build();
                 })
                 .collect(Collectors.toList());
