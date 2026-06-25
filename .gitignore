@@ -39,3 +39,8 @@ out/
 ### Secret ###
 application-local.yaml
 src/main/resources/firebase-service-account.json
+
+# Lambda build artifacts
+lambda/__pycache__/
+lambda/*.zip
+.DS_Store
