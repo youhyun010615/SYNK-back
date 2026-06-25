@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import urllib.request
 import urllib.error
 
@@ -189,13 +190,21 @@ def lambda_handler(event, context):
             return {"statusCode": 500}
 
         # 4) S3 업로드
+        # mission_id는 DB 리셋 시 재사용될 수 있어 같은 키로 덮어써질 때 브라우저가
+        # 이전 캐시를 그대로 보여주는 문제가 있었음 → no-cache 헤더 + 캐시 버스팅 쿼리스트링 부여
+        cache_bust = int(time.time())
+
         video_key = f"collages/{mission_id}/collage.mp4"
-        s3.upload_file(collage_path, BUCKET, video_key, ExtraArgs={"ContentType": "video/mp4"})
-        collage_video_url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{video_key}"
+        s3.upload_file(collage_path, BUCKET, video_key, ExtraArgs={
+            "ContentType": "video/mp4", "CacheControl": "no-cache, max-age=0, must-revalidate"
+        })
+        collage_video_url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{video_key}?v={cache_bust}"
 
         thumb_key = f"collages/{mission_id}/thumbnail.jpg"
-        s3.upload_file(thumb_path, BUCKET, thumb_key, ExtraArgs={"ContentType": "image/jpeg"})
-        thumbnail_url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{thumb_key}"
+        s3.upload_file(thumb_path, BUCKET, thumb_key, ExtraArgs={
+            "ContentType": "image/jpeg", "CacheControl": "no-cache, max-age=0, must-revalidate"
+        })
+        thumbnail_url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{thumb_key}?v={cache_bust}"
 
         print(f"Collage video uploaded: {collage_video_url}")
         print(f"Thumbnail uploaded: {thumbnail_url}")
