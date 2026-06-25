@@ -10,7 +10,6 @@ s3 = boto3.client('s3', region_name='ap-northeast-2')
 BUCKET = os.environ.get('S3_BUCKET', 'synk-videos')
 REGION = os.environ.get('AWS_REGION_NAME', 'ap-northeast-2')
 
-# Rows config: number of clips per row, top to bottom
 LAYOUTS = {
     1:  [[1]],
     2:  [[1], [1]],
@@ -24,12 +23,14 @@ LAYOUTS = {
     10: [[3], [3], [4]],
 }
 
-CANVAS_W = 1080
-CANVAS_H = 1920
+CANVAS_W = 540
+CANVAS_H = 960
+FPS = 24
+MIN_DURATION = 2.0
+MAX_DURATION = 5.0
 
 
 def get_cells(rows_config):
-    """Returns list of (w, h, x, y) for each clip slot in order."""
     n_rows = len(rows_config)
     row_h = CANVAS_H // n_rows
     cells = []
@@ -43,36 +44,27 @@ def get_cells(rows_config):
     return cells
 
 
-def build_filter_complex(n, cells):
-    parts = []
-    for i in range(n):
-        w, h, _, _ = cells[i]
-        parts.append(
-            f"[{i}:v]scale={w}:{h}:force_original_aspect_ratio=decrease,"
-            f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v{i}]"
-        )
-    parts.append(f"color=black:size={CANVAS_W}x{CANVAS_H}:duration=30[base]")
-    prev = "base"
-    for i in range(n):
-        _, _, x, y = cells[i]
-        next_label = "out" if i == n - 1 else f"o{i}"
-        parts.append(f"[{prev}][v{i}]overlay={x}:{y}[{next_label}]")
-        prev = f"o{i}"
-    return ";".join(parts)
-
-
 def parse_s3_url(video_url):
-    """Extract (bucket, key) from s3:// URL or https:// CDN URL."""
     if video_url.startswith("s3://"):
         path = video_url[5:]
         bucket, key = path.split("/", 1)
         return bucket, key
-    # https://synk-videos.s3.ap-northeast-2.amazonaws.com/videos/xxx.mp4
     if ".amazonaws.com/" in video_url:
         key = video_url.split(".amazonaws.com/", 1)[1]
         return BUCKET, key
-    # Assume it's a key relative to the default bucket
     return BUCKET, video_url
+
+
+def probe_duration(local_video):
+    probe = subprocess.run(
+        ["/opt/ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", local_video],
+        capture_output=True, text=True
+    )
+    try:
+        return float(probe.stdout.strip())
+    except Exception:
+        return None
 
 
 def send_callback(url, secret, payload):
@@ -92,7 +84,7 @@ def send_callback(url, secret, payload):
 
 def lambda_handler(event, context):
     mission_id = event["missionId"]
-    submissions = event["submissions"]  # [{userId, videoUrl}, ...]
+    submissions = event["submissions"]
     callback_url = event["callbackUrl"]
     callback_secret = event["callbackSecret"]
 
@@ -107,81 +99,111 @@ def lambda_handler(event, context):
     cells = get_cells(layout)
 
     with tempfile.TemporaryDirectory() as tmp:
-        input_files = []
+        # 1) 제출된 영상 다운로드 + 길이 측정 (미제출자는 videoUrl 없음 → 검은 화면으로 채움)
+        local_videos = [None] * n
+        durations = []
         for i, sub in enumerate(submissions):
-            bucket, key = parse_s3_url(sub["videoUrl"])
-            local_path = f"{tmp}/input_{i}.mp4"
+            video_url = sub.get("videoUrl")
+            if not video_url:
+                continue
+            bucket, key = parse_s3_url(video_url)
+            local_video = f"{tmp}/input_{i}.mp4"
             print(f"Downloading s3://{bucket}/{key}")
-            s3.download_file(bucket, key, local_path)
-            input_files.append(local_path)
+            s3.download_file(bucket, key, local_video)
+            local_videos[i] = local_video
+            d = probe_duration(local_video)
+            if d:
+                durations.append(d)
 
-        filter_complex = build_filter_complex(n, cells)
-        output_path = f"{tmp}/collage_{mission_id}.mp4"
-
-        inputs = []
-        for f in input_files:
-            inputs += ["-i", f]
-
-        cmd = (
-            ["ffmpeg", "-y"]
-            + inputs
-            + [
-                "-filter_complex", filter_complex,
-                "-map", "[out]",
-                "-c:v", "libx264",
-                "-preset", "fast",
-                "-crf", "23",
-                "-movflags", "+faststart",
-                "-t", "30",
-                output_path,
-            ]
-        )
-
-        print(f"Running FFmpeg: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-
-        if result.returncode != 0:
-            print(f"FFmpeg stderr: {result.stderr[-1000:]}")
+        if not durations:
             send_callback(callback_url, callback_secret, {
-                "missionId": mission_id,
-                "success": False,
-                "error": result.stderr[-500:],
+                "missionId": mission_id, "success": False, "error": "No valid submitted videos"
             })
             return {"statusCode": 500}
 
-        # Upload collage video
-        collage_key = f"collages/{mission_id}/collage.mp4"
-        s3.upload_file(
-            output_path, BUCKET, collage_key,
-            ExtraArgs={"ContentType": "video/mp4", "ACL": "public-read"},
+        # 콜라주 영상 길이 = 제출 영상 중 가장 짧은 길이 (2~5초로 보정)
+        duration = min(max(min(durations), MIN_DURATION), MAX_DURATION)
+
+        # 2) 콜라주 영상 합성 (제출자는 실제 영상 트림, 미제출자는 검은 화면 영상)
+        collage_path = f"{tmp}/collage_{mission_id}.mp4"
+
+        filter_parts = []
+        inputs = []
+        for i, (w, h, _, _) in enumerate(cells[:n]):
+            if local_videos[i]:
+                inputs += ["-i", local_videos[i]]
+                filter_parts.append(
+                    f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
+                    f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+                    f"crop={w}:{h},setsar=1,fps={FPS}[f{i}]"
+                )
+            else:
+                inputs += ["-f", "lavfi", "-i", f"color=black:size={w}x{h}:duration={duration}:rate={FPS}"]
+                filter_parts.append(f"[{i}:v]setsar=1[f{i}]")
+
+        filter_parts.append(
+            f"color=black:size={CANVAS_W}x{CANVAS_H}:duration={duration}:rate={FPS}[base]"
         )
-        collage_url = (
-            f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{collage_key}"
+        prev = "base"
+        for i in range(n):
+            _, _, x, y = cells[i]
+            next_label = "out" if i == n - 1 else f"o{i}"
+            filter_parts.append(f"[{prev}][f{i}]overlay={x}:{y}[{next_label}]")
+            prev = f"o{i}"
+        filter_complex = ";".join(filter_parts)
+
+        cmd = (
+            ["/opt/ffmpeg", "-y", "-nostats", "-loglevel", "error"]
+            + inputs
+            + ["-filter_complex", filter_complex, "-map", "[out]",
+               "-t", str(duration), "-r", str(FPS), "-pix_fmt", "yuv420p",
+               "-c:v", "libx264", "-preset", "veryfast", "-movflags", "+faststart",
+               collage_path]
         )
 
-        # Extract thumbnail (first frame)
-        thumb_path = f"{tmp}/thumb_{mission_id}.jpg"
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if result.returncode != 0 or not os.path.exists(collage_path):
+            print("Collage video creation failed")
+            send_callback(callback_url, callback_secret, {
+                "missionId": mission_id, "success": False, "error": "Collage video creation failed"
+            })
+            return {"statusCode": 500}
+
+        # 3) 합쳐진 콜라주 영상에서 썸네일 프레임 추출 (영상-썸네일 1:1 일치 보장)
+        thumb_path = f"{tmp}/thumbnail_{mission_id}.jpg"
+        seek = duration * 0.3
         subprocess.run(
-            ["ffmpeg", "-y", "-i", output_path, "-vframes", "1", "-q:v", "2", thumb_path],
-            capture_output=True,
+            ["/opt/ffmpeg", "-y", "-nostats", "-loglevel", "error",
+             "-ss", str(seek), "-i", collage_path,
+             "-vframes", "1", "-q:v", "2", thumb_path],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
+        if not os.path.exists(thumb_path):
+            send_callback(callback_url, callback_secret, {
+                "missionId": mission_id, "success": False, "error": "Thumbnail extraction failed"
+            })
+            return {"statusCode": 500}
+
+        # 4) S3 업로드
+        video_key = f"collages/{mission_id}/collage.mp4"
+        s3.upload_file(collage_path, BUCKET, video_key, ExtraArgs={"ContentType": "video/mp4"})
+        collage_video_url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{video_key}"
+
         thumb_key = f"collages/{mission_id}/thumbnail.jpg"
-        s3.upload_file(
-            thumb_path, BUCKET, thumb_key,
-            ExtraArgs={"ContentType": "image/jpeg", "ACL": "public-read"},
-        )
-        thumbnail_url = (
-            f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{thumb_key}"
-        )
+        s3.upload_file(thumb_path, BUCKET, thumb_key, ExtraArgs={"ContentType": "image/jpeg"})
+        thumbnail_url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{thumb_key}"
+
+        print(f"Collage video uploaded: {collage_video_url}")
+        print(f"Thumbnail uploaded: {thumbnail_url}")
 
         submitted_count = len([s for s in submissions if s.get("status") == "SUBMITTED"])
 
         send_callback(callback_url, callback_secret, {
             "missionId": mission_id,
             "success": True,
-            "collageVideoUrl": collage_url,
+            "collageVideoUrl": collage_video_url,
             "thumbnailUrl": thumbnail_url,
             "submittedCount": submitted_count,
         })
 
-        return {"statusCode": 200, "collageUrl": collage_url}
+        return {"statusCode": 200, "collageVideoUrl": collage_video_url, "thumbnailUrl": thumbnail_url}
