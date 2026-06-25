@@ -26,8 +26,7 @@ LAYOUTS = {
 CANVAS_W = 540
 CANVAS_H = 960
 FPS = 24
-MIN_DURATION = 2.0
-MAX_DURATION = 5.0
+COLLAGE_DURATION = 3.0  # 미션 영상이 3~5초로 짧아 고정 길이 사용 (짧으면 루프, 길면 트림)
 
 
 def get_cells(rows_config):
@@ -53,18 +52,6 @@ def parse_s3_url(video_url):
         key = video_url.split(".amazonaws.com/", 1)[1]
         return BUCKET, key
     return BUCKET, video_url
-
-
-def probe_duration(local_video):
-    probe = subprocess.run(
-        ["/opt/ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=noprint_wrappers=1:nokey=1", local_video],
-        capture_output=True, text=True
-    )
-    try:
-        return float(probe.stdout.strip())
-    except Exception:
-        return None
 
 
 def send_callback(url, secret, payload):
@@ -99,9 +86,9 @@ def lambda_handler(event, context):
     cells = get_cells(layout)
 
     with tempfile.TemporaryDirectory() as tmp:
-        # 1) 제출된 영상 다운로드 + 길이 측정 (미제출자는 videoUrl 없음 → 검은 화면으로 채움)
+        # 1) 제출된 영상 다운로드 (미제출자는 videoUrl 없음 → 검은 화면으로 채움)
         local_videos = [None] * n
-        durations = []
+        has_any_video = False
         for i, sub in enumerate(submissions):
             video_url = sub.get("videoUrl")
             if not video_url:
@@ -111,27 +98,25 @@ def lambda_handler(event, context):
             print(f"Downloading s3://{bucket}/{key}")
             s3.download_file(bucket, key, local_video)
             local_videos[i] = local_video
-            d = probe_duration(local_video)
-            if d:
-                durations.append(d)
+            has_any_video = True
 
-        if not durations:
+        if not has_any_video:
             send_callback(callback_url, callback_secret, {
                 "missionId": mission_id, "success": False, "error": "No valid submitted videos"
             })
             return {"statusCode": 500}
 
-        # 콜라주 영상 길이 = 제출 영상 중 가장 짧은 길이 (2~5초로 보정)
-        duration = min(max(min(durations), MIN_DURATION), MAX_DURATION)
+        duration = COLLAGE_DURATION
 
-        # 2) 콜라주 영상 합성 (제출자는 실제 영상 트림, 미제출자는 검은 화면 영상)
+        # 2) 콜라주 영상 합성 (제출자는 실제 영상을 고정 길이로 루프/트림, 미제출자는 검은 화면 영상)
         collage_path = f"{tmp}/collage_{mission_id}.mp4"
 
         filter_parts = []
         inputs = []
         for i, (w, h, _, _) in enumerate(cells[:n]):
             if local_videos[i]:
-                inputs += ["-i", local_videos[i]]
+                # 영상이 duration보다 짧으면 반복, 길면 트림으로 길이를 통일
+                inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
                     f"scale={w}:{h}:force_original_aspect_ratio=increase,"
