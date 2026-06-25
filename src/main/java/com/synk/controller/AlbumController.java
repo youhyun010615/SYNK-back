@@ -26,6 +26,14 @@ public class AlbumController {
         return ResponseEntity.ok(ApiResponse.success(response, "앨범 목록 조회 성공"));
     }
 
+    @GetMapping("/recent")
+    public ResponseEntity<ApiResponse<List<AlbumResponse>>>
+    getRecentAlbums(@PathVariable Long roomId,
+            @RequestParam(defaultValue = "4") int limit) {
+        List<AlbumResponse> response = albumService.getRecentAlbums(roomId, limit);
+        return ResponseEntity.ok(ApiResponse.success(response, "최근 콜라주 썸네일 조회 성공"));
+    }
+
     @PostMapping("/{date}/synklog")
     public ResponseEntity<ApiResponse<SynklogResponse>>
     createSynklog(@PathVariable Long roomId,

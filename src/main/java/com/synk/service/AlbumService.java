@@ -68,6 +68,27 @@ public class AlbumService {
                 }).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AlbumResponse> getRecentAlbums(Long roomId, int limit) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateMember(user, room);
+
+        List<AlbumResponse.MemberProfile> profiles = roomMemberRepository
+                .findByRoom(room).stream()
+                .map(rm -> AlbumResponse.MemberProfile.builder()
+                        .userId(rm.getUser().getId())
+                        .profileImage(rm.getUser().getProfileImage())
+                        .build())
+                .toList();
+
+        return collageRepository.findByRoomOrderByCreatedAtDesc(room).stream()
+                .filter(c -> c.getThumbnail() != null)
+                .limit(limit)
+                .map(c -> AlbumResponse.from(c.getMission().getDate().format(DATE_FORMAT), c, profiles))
+                .toList();
+    }
+
     @Transactional
     public SynklogResponse createSynklog(Long roomId, LocalDate date) {
         User user = getUser();
