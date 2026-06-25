@@ -44,6 +44,9 @@ public class MissionScheduler {
     private final CollageService collageService;
     private final SimpMessagingTemplate messagingTemplate;
 
+    // 같은 날 미션끼리 최소 이 간격(분) 이상 떨어지도록 보장 (deadline 5분 + 여유)
+    private static final long MIN_SLOT_GAP_MINUTES = 30;
+
     // 자정에 당일 미션 생성 (KST 기준)
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
@@ -70,8 +73,18 @@ public class MissionScheduler {
 
             int count = Math.min(room.getDailyMissionCount(), availableSlots.size());
 
-            for (int i = 0; i < count; i++) {
-                MissionTimeSlot slot = availableSlots.get(i);
+            List<MissionTimeSlot> chosenSlots = new ArrayList<>();
+            for (MissionTimeSlot slot : availableSlots) {
+                if (chosenSlots.size() >= count) break;
+                boolean tooClose = chosenSlots.stream().anyMatch(chosen ->
+                        Math.abs(java.time.Duration.between(chosen.getSlotTime(), slot.getSlotTime()).toMinutes())
+                                < MIN_SLOT_GAP_MINUTES);
+                if (tooClose) continue;
+                chosenSlots.add(slot);
+            }
+
+            for (int i = 0; i < chosenSlots.size(); i++) {
+                MissionTimeSlot slot = chosenSlots.get(i);
                 if (missionRepository.existsByRoomAndDateAndTimeSlot(room, today, slot)) continue;
                 missionRepository.save(Mission.builder()
                         .room(room)
