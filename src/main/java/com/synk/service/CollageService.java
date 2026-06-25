@@ -5,6 +5,7 @@ import com.synk.dto.request.CollageCallbackRequest;
 import com.synk.dto.response.CollageResponse;
 import com.synk.entity.Collage;
 import com.synk.entity.Mission;
+import com.synk.entity.RoomMember;
 import com.synk.entity.Submission;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
@@ -75,19 +76,26 @@ public class CollageService {
 
     private void invokeLambda(Mission mission, List<Submission> submissions, Collage collage, int totalMembers) {
         try {
-            List<Map<String, Object>> submissionPayloads = submissions.stream()
-                    .filter(s -> s.getStatus() == Submission.SubmissionStatus.SUBMITTED
-                            && s.getVideoUrl() != null)
-                    .map(s -> {
+            Map<Long, Submission> submissionByUserId = submissions.stream()
+                    .collect(java.util.stream.Collectors.toMap(s -> s.getUser().getId(), s -> s, (a, b) -> a));
+
+            List<RoomMember> members = roomMemberRepository.findByRoom(mission.getRoom());
+
+            // 전원 분량의 셀을 유지하기 위해 미제출자도 videoUrl=null로 포함시킨다 (Lambda가 빈 칸으로 렌더링)
+            List<Map<String, Object>> submissionPayloads = members.stream()
+                    .map(member -> {
+                        Submission s = submissionByUserId.get(member.getUser().getId());
                         Map<String, Object> m = new HashMap<>();
-                        m.put("userId", s.getUser().getId());
-                        m.put("videoUrl", s.getVideoUrl());
-                        m.put("status", s.getStatus().name());
+                        m.put("userId", member.getUser().getId());
+                        m.put("videoUrl", s != null ? s.getVideoUrl() : null);
+                        m.put("status", s != null ? s.getStatus().name() : "MISSED");
                         return m;
                     })
                     .toList();
 
-            if (submissionPayloads.isEmpty()) {
+            boolean hasAnySubmitted = submissionPayloads.stream()
+                    .anyMatch(m -> m.get("videoUrl") != null);
+            if (!hasAnySubmitted) {
                 collage.fail();
                 return;
             }
