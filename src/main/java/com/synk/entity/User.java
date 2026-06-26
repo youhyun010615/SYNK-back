@@ -82,6 +82,7 @@ public class User extends BaseTimeEntity {
     }
 
     public void updateFcmToken(String fcmToken) {
+        if (fcmToken == null || fcmToken.isBlank()) return;
         this.fcmToken = fcmToken;
     }
 
