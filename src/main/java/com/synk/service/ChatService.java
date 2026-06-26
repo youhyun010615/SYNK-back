@@ -12,6 +12,7 @@ import com.synk.global.exception.ErrorCode;
 import com.synk.repository.*;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class ChatService {
     private final ChatReactionRepository chatReactionRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional(readOnly = true)
     public ChatMessageResponse getChats(Long roomId) {
@@ -77,11 +79,21 @@ public class ChatService {
                         .content(request.getContent())
                         .build());
 
-        return ChatSocketResponse.builder()
+        ChatSocketResponse response = ChatSocketResponse.builder()
                 .messageId(chat.getId())
                 .userId(user.getId())
+                .userName(user.getName())
+                .profileImage(user.getProfileImage())
+                .messageType(messageType.name())
+                .content(chat.getContent())
                 .createdAt(chat.getCreatedAt())
                 .build();
+
+        // REST로 보낸 메시지도 WebSocket으로 방 전체에 실시간 브로드캐스트
+        // (STOMP handleMessage의 @SendTo("/topic/rooms/{roomId}")와 동일한 토픽)
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId, response);
+
+        return response;
     }
 
     @Transactional
