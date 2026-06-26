@@ -5,8 +5,10 @@ import com.synk.dto.request.CollageCallbackRequest;
 import com.synk.dto.response.CollageResponse;
 import com.synk.entity.Collage;
 import com.synk.entity.Mission;
+import com.synk.entity.Notification;
 import com.synk.entity.RoomMember;
 import com.synk.entity.Submission;
+import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.repository.CollageRepository;
@@ -42,6 +44,7 @@ public class CollageService {
     private final RoomMemberRepository roomMemberRepository;
     private final RoomRepository roomRepository;
     private final LambdaClient lambdaClient;
+    private final FcmService fcmService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${aws.lambda.function-name}")
@@ -153,6 +156,22 @@ public class CollageService {
             // 이 미션의 CollectionRecord 썸네일을 콜라주 썸네일로 업데이트
             collectionRecordRepository.findBySubmission_Mission(mission)
                     .forEach(record -> record.updateThumbnail(request.getThumbnailUrl()));
+
+            // 결과 알림: 콜라주가 완성되면 방 멤버 전원에게 알림 (resultAlert 켠 사람만)
+            String missionTitle = mission.getMissionTemplate() != null
+                    ? mission.getMissionTemplate().getTitle() : "미션";
+            for (RoomMember member : roomMemberRepository.findByRoom(mission.getRoom())) {
+                User memberUser = member.getUser();
+                if (memberUser.isResultAlert()) {
+                    fcmService.sendAndSave(
+                            memberUser,
+                            Notification.NotificationType.MISSION_COMPLETE,
+                            "결과가 도착했어요!",
+                            missionTitle + " 콜라주가 완성됐어요. 지금 확인해보세요.",
+                            mission.getId()
+                    );
+                }
+            }
         } else {
             collage.fail();
             log.warn("콜라주 실패: missionId={}, error={}", request.getMissionId(), request.getError());
