@@ -31,14 +31,19 @@ public class ChatService {
     private final MissionRepository missionRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ChatMessageResponse getChats(Long roomId) {
         User user = getUser();
         Room room = getRoom(roomId);
-        validateMember(user, room);
+        RoomMember member = getMember(user, room);
 
         List<RoomChat> chats = roomChatRepository.findByRoomOrderByCreatedAtAsc(room);
         int memberCount = roomMemberRepository.countByRoom(room);
+
+        // 채팅 목록을 조회하면 그 시점의 최신 메시지까지 읽은 것으로 처리 (dot 해제용)
+        if (!chats.isEmpty()) {
+            member.markRead(chats.get(chats.size() - 1).getId());
+        }
 
         List<ChatMessageResponse.MessageInfo> messages =
                 chats.stream()
@@ -66,7 +71,7 @@ public class ChatService {
     public ChatSocketResponse sendMessage(Long roomId, SendMessageRequest request) {
         User user = getUser();
         Room room = getRoom(roomId);
-        validateMember(user, room);
+        RoomMember member = getMember(user, room);
 
         RoomChat.MessageType messageType = request.getMessageType() != null
                 ? request.getMessageType()
@@ -78,6 +83,9 @@ public class ChatService {
                         .messageType(messageType)
                         .content(request.getContent())
                         .build());
+
+        // 본인이 보낸 메시지는 본인 기준으로는 이미 읽은 것 (dot 안 뜨도록)
+        member.markRead(chat.getId());
 
         ChatSocketResponse response = ChatSocketResponse.builder()
                 .messageId(chat.getId())
@@ -101,7 +109,7 @@ public class ChatService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         Room room = getRoom(roomId);
-        validateMember(user, room);
+        RoomMember member = getMember(user, room);
 
         RoomChat.MessageType messageType = request.getMessageType() != null
                 ? request.getMessageType()
@@ -113,6 +121,8 @@ public class ChatService {
                 .messageType(messageType)
                 .content(request.getContent())
                 .build());
+
+        member.markRead(chat.getId());
 
         return ChatSocketResponse.builder()
                 .messageId(chat.getId())
@@ -157,5 +167,10 @@ public class ChatService {
                 room)) {
             throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
         }
+    }
+
+    private RoomMember getMember(User user, Room room) {
+        return roomMemberRepository.findByUserAndRoom(user, room)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_ACCESS_DENIED));
     }
 }

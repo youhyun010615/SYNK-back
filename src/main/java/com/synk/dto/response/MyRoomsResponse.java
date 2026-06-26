@@ -27,6 +27,7 @@ public class MyRoomsResponse {
         private String roomThumbnail;
         private List<MemberProfile> memberProfiles;
         private Long lastMessageId;
+        private boolean hasUnreadChat;
     }
 
     @Getter

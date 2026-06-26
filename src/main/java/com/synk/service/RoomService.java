@@ -278,6 +278,10 @@ public class RoomService {
                         .map(chat -> chat.getId())
                         .orElse(null);
 
+                // 내가 읽은 마지막 메시지 ID보다 최신 메시지가 있을 때만 dot 표시 (본인이 보낸 메시지는 markRead로 이미 반영됨)
+                boolean hasUnreadChat = lastMessageId != null
+                        && (rm.getLastReadMessageId() == null || lastMessageId > rm.getLastReadMessageId());
+
                 active.add(MyRoomsResponse.ActiveRoom.builder()
                         .id(room.getId())
                         .name(room.getName())
@@ -288,6 +292,7 @@ public class RoomService {
                         .roomThumbnail(room.getThumbnail())
                         .memberProfiles(profiles)
                         .lastMessageId(lastMessageId)
+                        .hasUnreadChat(hasUnreadChat)
                         .build());
             } else {
 

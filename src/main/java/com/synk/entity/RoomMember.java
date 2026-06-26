@@ -33,6 +33,9 @@ public class RoomMember {
             updatable = false)
     private LocalDateTime joinedAt;
 
+    @Column(name = "last_read_message_id")
+    private Long lastReadMessageId;
+
     @Builder
     public RoomMember(User user, Room room, boolean
             isOwner) {
@@ -44,6 +47,13 @@ public class RoomMember {
 
     public void promoteToOwner() {
         this.isOwner = true;
+    }
+
+    public void markRead(Long messageId) {
+        if (messageId == null) return;
+        if (this.lastReadMessageId == null || messageId > this.lastReadMessageId) {
+            this.lastReadMessageId = messageId;
+        }
     }
 
 }
