@@ -181,24 +181,19 @@ public class RoomService {
         boolean wasOwner = member.isOwner();
         roomMemberRepository.delete(member);
 
-        if (!wasOwner) {
-            return;
-        }
-
-        List<RoomMember> remaining = roomMemberRepository.findByRoom(room).stream()
-                .filter(m -> !m.getId().equals(member.getId()))
-                .sorted(java.util.Comparator.comparing(RoomMember::getJoinedAt))
-                .toList();
-
-        if (remaining.isEmpty()) {
+        if (wasOwner) {
+            // 방장이 나가면 방 자체를 삭제
+            roomMemberRepository.deleteAllByRoom(room);
             roomBanRepository.deleteAllByRoom(room);
             roomRepository.delete(room);
             return;
         }
 
-        RoomMember newOwner = remaining.get(0);
-        newOwner.promoteToOwner();
-        room.changeOwner(newOwner.getUser());
+        // 일반 멤버가 나가면 같은 초대 코드로 재입장 불가 처리
+        roomBanRepository.save(RoomBan.builder()
+                .room(room)
+                .user(user)
+                .build());
     }
 
     @Transactional
