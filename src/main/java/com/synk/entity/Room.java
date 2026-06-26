@@ -77,5 +77,9 @@ public class Room extends BaseTimeEntity {
         if (missionEndTime != null) this.missionEndTime = missionEndTime;
     }
 
+    public void changeOwner(User newOwner) {
+        this.owner = newOwner;
+    }
+
 }
 

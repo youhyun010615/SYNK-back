@@ -14,6 +14,7 @@ import com.synk.dto.response.JoinRoomResponse;
 import com.synk.dto.response.RoomDetailResponse;
 import com.synk.dto.response.RoomMemberResponse;
 import com.synk.entity.Room;
+import com.synk.entity.RoomBan;
 import com.synk.entity.RoomMember;
 import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
@@ -21,6 +22,7 @@ import com.synk.global.exception.ErrorCode;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.MissionTemplateRepository;
 import com.synk.repository.MissionTimeSlotRepository;
+import com.synk.repository.RoomBanRepository;
 import com.synk.repository.RoomChatRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
@@ -51,6 +53,7 @@ public class RoomService {
     private final MissionTemplateRepository missionTemplateRepository;
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final RoomChatRepository roomChatRepository;
+    private final RoomBanRepository roomBanRepository;
     private final FcmService fcmService;
 
     @Transactional
@@ -88,6 +91,10 @@ public class RoomService {
 
         if (roomMemberRepository.existsByUserAndRoom(user, room)) {
             throw new CustomException(ErrorCode.ROOM_ALREADY_JOINED);
+        }
+
+        if (roomBanRepository.existsByRoomAndUser(room, user)) {
+            throw new CustomException(ErrorCode.ROOM_BANNED);
         }
 
         int currentMembers = roomMemberRepository.countByRoom(room);
@@ -131,6 +138,10 @@ public class RoomService {
         RoomMember member = roomMemberRepository.findByUserAndRoom(targetUser, room)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_ACCESS_DENIED));
         roomMemberRepository.delete(member);
+        roomBanRepository.save(RoomBan.builder()
+                .room(room)
+                .user(targetUser)
+                .build());
     }
 
     @Transactional(readOnly = true)
@@ -166,7 +177,28 @@ public class RoomService {
         Room room = getRoom(roomId);
         RoomMember member = roomMemberRepository.findByUserAndRoom(user, room)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_ACCESS_DENIED));
+
+        boolean wasOwner = member.isOwner();
         roomMemberRepository.delete(member);
+
+        if (!wasOwner) {
+            return;
+        }
+
+        List<RoomMember> remaining = roomMemberRepository.findByRoom(room).stream()
+                .filter(m -> !m.getId().equals(member.getId()))
+                .sorted(java.util.Comparator.comparing(RoomMember::getJoinedAt))
+                .toList();
+
+        if (remaining.isEmpty()) {
+            roomBanRepository.deleteAllByRoom(room);
+            roomRepository.delete(room);
+            return;
+        }
+
+        RoomMember newOwner = remaining.get(0);
+        newOwner.promoteToOwner();
+        room.changeOwner(newOwner.getUser());
     }
 
     @Transactional
@@ -175,6 +207,7 @@ public class RoomService {
         Room room = getRoom(roomId);
         validateOwner(user, room);
         roomMemberRepository.deleteAllByRoom(room);
+        roomBanRepository.deleteAllByRoom(room);
         roomRepository.delete(room);
     }
 

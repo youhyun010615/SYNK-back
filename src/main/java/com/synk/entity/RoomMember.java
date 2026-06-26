@@ -42,5 +42,8 @@ public class RoomMember {
         this.joinedAt = LocalDateTime.now();
     }
 
+    public void promoteToOwner() {
+        this.isOwner = true;
+    }
 
 }
