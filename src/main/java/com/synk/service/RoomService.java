@@ -12,6 +12,7 @@ import com.synk.dto.response.CreateRoomResponse;
 import com.synk.dto.response.InviteResponse;
 import com.synk.dto.response.JoinRoomResponse;
 import com.synk.dto.response.RoomDetailResponse;
+import com.synk.dto.response.RoomEventResponse;
 import com.synk.dto.response.RoomMemberResponse;
 import com.synk.entity.Room;
 import com.synk.entity.RoomBan;
@@ -29,6 +30,7 @@ import com.synk.repository.RoomRepository;
 import com.synk.repository.UserRepository;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.synk.dto.response.MyRoomsResponse;
@@ -55,6 +57,7 @@ public class RoomService {
     private final RoomChatRepository roomChatRepository;
     private final RoomBanRepository roomBanRepository;
     private final FcmService fcmService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request) {
@@ -142,6 +145,12 @@ public class RoomService {
                 .room(room)
                 .user(targetUser)
                 .build());
+
+        // 강퇴 즉시 실시간으로 알림 (당사자 화면에서 바로 강퇴 처리되도록)
+        messagingTemplate.convertAndSend(
+                "/topic/rooms/" + roomId,
+                RoomEventResponse.memberKicked(roomId, targetUserId)
+        );
     }
 
     @Transactional(readOnly = true)

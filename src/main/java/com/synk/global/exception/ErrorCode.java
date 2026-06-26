@@ -27,7 +27,7 @@ public enum ErrorCode {
     ROOM_ACCESS_DENIED(HttpStatus.FORBIDDEN, "방 멤버가 아닙니다."),
     ROOM_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "방장만 가능합니다."),
     INVALID_INVITE_CODE(HttpStatus.NOT_FOUND, "존재하지 않는 초대 코드입니다."),
-    ROOM_BANNED(HttpStatus.FORBIDDEN, "강퇴된 방에는 재입장할 수 없습니다."),
+    ROOM_BANNED(HttpStatus.CONFLICT, "강퇴된 방에는 재입장할 수 없습니다."),
 
     // 미션
     MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 미션입니다."),

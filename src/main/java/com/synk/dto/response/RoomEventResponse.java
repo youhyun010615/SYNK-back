@@ -41,4 +41,14 @@ public class RoomEventResponse {
                 ))
                 .build();
     }
+
+    public static RoomEventResponse memberKicked(Long roomId, Long userId) {
+        return RoomEventResponse.builder()
+                .type("MEMBER_KICKED")
+                .roomId(roomId)
+                .payload(Map.of(
+                        "userId", userId
+                ))
+                .build();
+    }
 }
