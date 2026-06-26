@@ -3,12 +3,17 @@ package com.synk.service;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.Notification;
 import com.synk.entity.User;
+import com.synk.entity.UserFcmToken;
 import com.synk.repository.NotificationRepository;
+import com.synk.repository.UserFcmTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -16,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class FcmService {
 
     private final NotificationRepository notificationRepository;
+    private final UserFcmTokenRepository userFcmTokenRepository;
 
     public void sendAndSave(User user, com.synk.entity.Notification.NotificationType type,
                             String title, String body, Long relatedId) {
@@ -28,10 +34,14 @@ public class FcmService {
                 .relatedId(relatedId)
                 .build());
 
-        // FCM 전송 (토큰 없으면 스킵)
-        String token = user.getFcmToken();
-        if (token == null || token.isBlank()) return;
+        // 유저가 등록한 모든 기기(폰, 맥북 등)로 각각 전송
+        List<UserFcmToken> tokens = userFcmTokenRepository.findByUser(user);
+        for (UserFcmToken userFcmToken : tokens) {
+            sendToToken(user.getId(), userFcmToken.getToken(), title, body);
+        }
+    }
 
+    private void sendToToken(Long userId, String token, String title, String body) {
         try {
             Message message = Message.builder()
                     .setNotification(Notification.builder()
@@ -41,9 +51,13 @@ public class FcmService {
                     .setToken(token)
                     .build();
             FirebaseMessaging.getInstance().send(message);
-            log.info("FCM 전송 성공: userId={}", user.getId());
+            log.info("FCM 전송 성공: userId={}", userId);
         } catch (FirebaseMessagingException e) {
-            log.warn("FCM 전송 실패: userId={}, error={}", user.getId(), e.getMessage());
+            log.warn("FCM 전송 실패: userId={}, error={}", userId, e.getMessage());
+            // 더 이상 유효하지 않은(기기에서 삭제/만료된) 토큰은 정리
+            if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
+                userFcmTokenRepository.deleteByToken(token);
+            }
         }
     }
 }

@@ -37,9 +37,6 @@ public class User extends BaseTimeEntity {
     @Column(name = "profile_image", length = 1000)
     private String profileImage;
 
-    @Column(name = "fcm_token", length = 1000)
-    private String fcmToken;
-
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -59,12 +56,11 @@ public class User extends BaseTimeEntity {
     @Builder
     public User(AuthProvider authProvider, String
                         authProviderId, String name,
-                String profileImage, String fcmToken) {
+                String profileImage) {
         this.authProvider = authProvider;
         this.authProviderId = authProviderId;
         this.name = name;
         this.profileImage = profileImage;
-        this.fcmToken = fcmToken;
         this.status = "active";
         this.missionAlert = true;
         this.resultAlert = true;
@@ -79,11 +75,6 @@ public class User extends BaseTimeEntity {
             profileImage) {
         if (name != null) this.name = name;
         if (profileImage != null) this.profileImage = profileImage;
-    }
-
-    public void updateFcmToken(String fcmToken) {
-        if (fcmToken == null || fcmToken.isBlank()) return;
-        this.fcmToken = fcmToken;
     }
 
     public void updateAlertSettings(boolean

@@ -7,8 +7,10 @@ import com.synk.dto.request.UpdateNotificationRequest;
 import com.synk.dto.request.UpdateProfileRequest;
 import com.synk.dto.response.UserResponse;
 import com.synk.entity.User;
+import com.synk.entity.UserFcmToken;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
+import com.synk.repository.UserFcmTokenRepository;
 import com.synk.repository.UserRepository;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserFcmTokenRepository userFcmTokenRepository;
 
     @Transactional(readOnly = true)
     public UserResponse getMyProfile() {
@@ -45,8 +48,19 @@ public class UserService {
 
     @Transactional
     public void updateFcmToken(String fcmToken) {
+        if (fcmToken == null || fcmToken.isBlank()) return;
         User user = getUser();
-        user.updateFcmToken(fcmToken);
+
+        // 같은 토큰(=같은 기기)이 이미 등록돼 있으면 소유자만 갱신, 없으면 새로 등록
+        // (기기별로 따로 저장해서 한 유저가 여러 기기를 써도 서로 토큰을 안 덮어씀)
+        userFcmTokenRepository.findByToken(fcmToken)
+                .ifPresentOrElse(
+                        existing -> existing.reassignTo(user),
+                        () -> userFcmTokenRepository.save(UserFcmToken.builder()
+                                .user(user)
+                                .token(fcmToken)
+                                .build())
+                );
     }
 
     @Transactional
