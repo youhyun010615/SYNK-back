@@ -77,8 +77,8 @@ public class User extends BaseTimeEntity {
 
     public void updateProfile(String name, String
             profileImage) {
-        this.name = name;
-        this.profileImage = profileImage;
+        if (name != null) this.name = name;
+        if (profileImage != null) this.profileImage = profileImage;
     }
 
     public void updateFcmToken(String fcmToken) {
