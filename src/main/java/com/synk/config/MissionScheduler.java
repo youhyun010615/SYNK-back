@@ -200,8 +200,21 @@ public class MissionScheduler {
                 boolean hasSubmissions = submissions.stream()
                         .anyMatch(s -> s.getStatus() == Submission.SubmissionStatus.SUBMITTED);
                 boolean collageExists = collageRepository.findByMission(mission).isPresent();
-                if (hasSubmissions && !collageExists) {
-                    collageService.triggerCollageIfReady(mission);
+                if (!collageExists) {
+                    if (hasSubmissions) {
+                        collageService.triggerCollageIfReady(mission);
+                    } else {
+                        // 아무도 제출 안 했으면 콜라주 자체를 만들 수 없음 — FE가 무한 로딩에
+                        // 빠지지 않도록 FAILED 상태로 기록을 남겨둔다
+                        int totalMembers = roomMemberRepository.countByRoom(mission.getRoom());
+                        Collage collage = collageRepository.save(Collage.builder()
+                                .mission(mission)
+                                .room(mission.getRoom())
+                                .totalMembers(totalMembers)
+                                .build());
+                        collage.fail();
+                        log.info("콜라주 생성 스킵(제출자 없음): missionId={}", mission.getId());
+                    }
                 }
             }
         }
