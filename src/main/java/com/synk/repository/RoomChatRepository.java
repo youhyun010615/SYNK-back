@@ -15,4 +15,6 @@ public interface RoomChatRepository extends
     List<RoomChat> findByRoomOrderByCreatedAtAsc(Room room);
 
     java.util.Optional<RoomChat> findTop1ByRoomOrderByCreatedAtDesc(Room room);
+
+    void deleteAllByRoom(Room room);
 }

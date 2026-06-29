@@ -25,4 +25,6 @@ public interface MissionRepository extends JpaRepository<Mission,
     List<Mission> findByRoomAndStatus(Room room, Mission.MissionStatus status);
 
     boolean existsByRoomAndDateAndTimeSlot(Room room, LocalDate date, MissionTimeSlot timeSlot);
+
+    void deleteAllByRoom(Room room);
 }

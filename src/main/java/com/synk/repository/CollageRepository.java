@@ -16,4 +16,6 @@ public interface CollageRepository extends JpaRepository<Collage, Long> {
     List<Collage> findByRoomOrderByCreatedAtDesc(Room room);
 
     List<Collage> findByRoomAndMission_Date(Room room, LocalDate date);
+
+    void deleteAllByRoom(Room room);
 }

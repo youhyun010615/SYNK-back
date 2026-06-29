@@ -19,4 +19,6 @@ public interface SynklogRepository extends JpaRepository<Synklog,
             date);
 
     List<Synklog> findByRoomOrderByDateDesc(Room room);
+
+    void deleteAllByRoom(Room room);
 }

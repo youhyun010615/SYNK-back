@@ -5,6 +5,7 @@
 package com.synk.repository;
 
 import com.synk.entity.ChatReaction;
+import com.synk.entity.Room;
 import com.synk.entity.RoomChat;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,4 +15,6 @@ public interface ChatReactionRepository extends
         JpaRepository<ChatReaction, Long> {
 
     List<ChatReaction> findByChat(RoomChat chat);
+
+    void deleteAllByChat_Room(Room room);
 }

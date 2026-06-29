@@ -6,6 +6,7 @@
 package com.synk.repository;
 
 import com.synk.entity.Mission;
+import com.synk.entity.Room;
 import com.synk.entity.Submission;
 import com.synk.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     Optional<Submission> findByMissionAndUser(Mission mission, User user);
 
     boolean existsByMissionAndUser(Mission mission, User user);
+
+    void deleteAllByRoom(Room room);
 }

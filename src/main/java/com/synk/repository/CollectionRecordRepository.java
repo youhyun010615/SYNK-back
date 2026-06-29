@@ -8,6 +8,7 @@ package com.synk.repository;
 import com.synk.entity.CollectionRecord;
 import com.synk.entity.Mission;
 import com.synk.entity.MissionTemplate;
+import com.synk.entity.Room;
 import com.synk.entity.Submission;
 import com.synk.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,4 +27,6 @@ public interface CollectionRecordRepository extends
     boolean existsBySubmission(Submission submission);
 
     List<CollectionRecord> findBySubmission_Mission(Mission mission);
+
+    void deleteAllByRoom(Room room);
 }

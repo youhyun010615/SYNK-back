@@ -20,6 +20,9 @@ import com.synk.entity.RoomMember;
 import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
+import com.synk.repository.ChatReactionRepository;
+import com.synk.repository.CollageRepository;
+import com.synk.repository.CollectionRecordRepository;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.MissionTemplateRepository;
 import com.synk.repository.MissionTimeSlotRepository;
@@ -27,6 +30,8 @@ import com.synk.repository.RoomBanRepository;
 import com.synk.repository.RoomChatRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
+import com.synk.repository.SubmissionRepository;
+import com.synk.repository.SynklogRepository;
 import com.synk.repository.UserRepository;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +61,11 @@ public class RoomService {
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final RoomChatRepository roomChatRepository;
     private final RoomBanRepository roomBanRepository;
+    private final ChatReactionRepository chatReactionRepository;
+    private final CollageRepository collageRepository;
+    private final CollectionRecordRepository collectionRecordRepository;
+    private final SubmissionRepository submissionRepository;
+    private final SynklogRepository synklogRepository;
     private final FcmService fcmService;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -192,9 +202,7 @@ public class RoomService {
 
         if (wasOwner) {
             // 방장이 나가면 방 자체를 삭제
-            roomMemberRepository.deleteAllByRoom(room);
-            roomBanRepository.deleteAllByRoom(room);
-            roomRepository.delete(room);
+            deleteRoomCascade(room);
             return;
         }
 
@@ -210,6 +218,18 @@ public class RoomService {
         User user = getUser();
         Room room = getRoom(roomId);
         validateOwner(user, room);
+        deleteRoomCascade(room);
+    }
+
+    // FK 제약 때문에 방을 참조하는 데이터를 자식 → 부모 순서로 먼저 정리한 뒤 방을 삭제
+    private void deleteRoomCascade(Room room) {
+        chatReactionRepository.deleteAllByChat_Room(room);
+        roomChatRepository.deleteAllByRoom(room);
+        collectionRecordRepository.deleteAllByRoom(room);
+        submissionRepository.deleteAllByRoom(room);
+        collageRepository.deleteAllByRoom(room);
+        synklogRepository.deleteAllByRoom(room);
+        missionRepository.deleteAllByRoom(room);
         roomMemberRepository.deleteAllByRoom(room);
         roomBanRepository.deleteAllByRoom(room);
         roomRepository.delete(room);
