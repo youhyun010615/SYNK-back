@@ -90,6 +90,7 @@ public class CollageService {
                         Submission s = submissionByUserId.get(member.getUser().getId());
                         Map<String, Object> m = new HashMap<>();
                         m.put("userId", member.getUser().getId());
+                        m.put("name", member.getUser().getName());
                         m.put("videoUrl", s != null ? s.getVideoUrl() : null);
                         m.put("status", s != null ? s.getStatus().name() : "MISSED");
                         return m;

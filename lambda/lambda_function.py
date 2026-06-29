@@ -8,6 +8,8 @@ import time
 import urllib.request
 import urllib.error
 
+from PIL import Image, ImageDraw, ImageFont
+
 s3 = boto3.client('s3', region_name='ap-northeast-2')
 BUCKET = os.environ.get('S3_BUCKET', 'synk-videos')
 REGION = os.environ.get('AWS_REGION_NAME', 'ap-northeast-2')
@@ -29,6 +31,57 @@ CANVAS_W = 540
 CANVAS_H = 960
 FPS = 24
 MAX_COLLAGE_DURATION = 15.0  # 폭주 방지용 상한선
+FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "NanumGothic.ttc")
+
+
+def build_missed_image(path, w, h, name):
+    """미제출자 칸 placeholder — ffmpeg에 drawtext가 없어 Pillow로 직접 그려서
+    PNG로 저장한 뒤 ffmpeg 입력 이미지로 합성한다."""
+    img = Image.new("RGB", (w, h), (45, 42, 85))
+    draw = ImageDraw.Draw(img)
+
+    stripe_color = (58, 54, 102)
+    spacing = max(int(h * 0.06), 20)
+    for x in range(-h, w, spacing):
+        draw.line([(x, 0), (x + h, h)], fill=stripe_color, width=2)
+
+    cx, cy = w // 2, int(h * 0.34)
+    r = max(int(h * 0.11), 18)
+    icon_color = (150, 140, 220)
+    lw = max(int(h * 0.006), 3)
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=icon_color, width=lw)
+    bw, bh = int(r * 0.8), int(r * 0.55)
+    draw.rounded_rectangle(
+        [cx - bw, cy - bh // 2, cx + bw // 2, cy + bh // 2],
+        radius=max(int(r * 0.1), 4), outline=icon_color, width=lw,
+    )
+    tri = int(bw * 0.45)
+    draw.polygon(
+        [
+            (cx + bw // 2, cy - bh // 3),
+            (cx + bw // 2 + tri, cy - tri),
+            (cx + bw // 2 + tri, cy + tri),
+            (cx + bw // 2, cy + bh // 3),
+        ],
+        outline=icon_color, width=lw,
+    )
+    draw.line([(cx - r + lw, cy - r + lw), (cx + r - lw, cy + r - lw)], fill=icon_color, width=lw + 2)
+
+    name_size = max(int(h * 0.05), 14)
+    sub_size = max(int(h * 0.038), 12)
+    name_font = ImageFont.truetype(FONT_PATH, name_size)
+    sub_font = ImageFont.truetype(FONT_PATH, sub_size)
+
+    display_name = (name or "").strip()
+    if display_name:
+        tw = draw.textlength(display_name, font=name_font)
+        draw.text((cx - tw / 2, int(h * 0.48)), display_name, font=name_font, fill=(201, 196, 240))
+
+    sub_text = "다음엔 꼭.."
+    tw = draw.textlength(sub_text, font=sub_font)
+    draw.text((cx - tw / 2, int(h * 0.58)), sub_text, font=sub_font, fill=(157, 151, 209))
+
+    img.save(path)
 
 
 def probe_duration(local_video):
@@ -143,8 +196,12 @@ def lambda_handler(event, context):
                     f"crop={w}:{h},setsar=1,fps={FPS}[f{i}]"
                 )
             else:
-                inputs += ["-f", "lavfi", "-i", f"color=black:size={w}x{h}:duration={duration}:rate={FPS}"]
-                filter_parts.append(f"[{i}:v]setsar=1[f{i}]")
+                missed_img_path = f"{tmp}/missed_{i}.png"
+                build_missed_image(missed_img_path, w, h, submissions[i].get("name"))
+                inputs += ["-loop", "1", "-i", missed_img_path]
+                filter_parts.append(
+                    f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,setsar=1,fps={FPS}[f{i}]"
+                )
 
         filter_parts.append(
             f"color=black:size={CANVAS_W}x{CANVAS_H}:duration={duration}:rate={FPS}[base]"
