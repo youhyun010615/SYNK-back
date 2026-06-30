@@ -34,54 +34,152 @@ MAX_COLLAGE_DURATION = 15.0  # 폭주 방지용 상한선
 FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "NanumGothic.ttc")
 
 
-def build_missed_image(path, w, h, name):
-    """미제출자 칸 placeholder — ffmpeg에 drawtext가 없어 Pillow로 직접 그려서
-    PNG로 저장한 뒤 ffmpeg 입력 이미지로 합성한다."""
-    img = Image.new("RGB", (w, h), (45, 42, 85))
+def build_missed_image(path, w, h, name, dark=True):
+    """미제출자 placeholder PNG — synk-missed-tile CSS 스펙 기반, dark/light 모드 지원.
+    dark=True: 네이비 #0c0e1a / dark=False: 크림 #f0ece2"""
+    import random
+    from PIL import ImageFilter
+
+    # CSS 기준 타일 220x280 → 현재 셀 크기로 비례 스케일
+    REF_W, REF_H = 220, 280
+    def sx(v): return int(v * w / REF_W)
+    def sy(v): return int(v * h / REF_H)
+    def sc(v): return int(v * (w / REF_W + h / REF_H) / 2)
+
+    # ── 배경 ──────────────────────────────────────────────────────────────────
+    bg_rgb = (12, 14, 26) if dark else (240, 236, 226)
+    img = Image.new("RGBA", (w, h), (*bg_rgb, 255))
+
+    # ── 보케 블롭 (CSS: filter blur(28px), 절대 위치) ────────────────────────
+    blob = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(blob)
+    if dark:
+        c1 = (245, 158, 11, 46)   # rgba(245,158,11,.18)
+        c2 = (245, 158, 11, 31)   # rgba(245,158,11,.12)
+        c3 = (124, 111, 240, 26)  # rgba(124,111,240,.10)
+    else:
+        c1 = (245, 158, 11, 51)   # rgba(245,158,11,.20)
+        c2 = (245, 158, 11, 38)   # rgba(245,158,11,.15)
+        c3 = (124, 111, 240, 20)  # rgba(124,111,240,.08)
+    # blob-1: 140x140, top:-30 left:-30
+    bd.ellipse([sx(-30), sy(-30), sx(-30)+sx(140), sy(-30)+sy(140)], fill=c1)
+    # blob-2: 100x100, bottom:10 right:-20
+    bd.ellipse([w+sx(-20)-sx(100), h-sy(10)-sy(100), w+sx(-20), h-sy(10)], fill=c2)
+    # blob-3: 70x70, top:50% left:60%
+    bd.ellipse([int(w*0.60), int(h*0.50), int(w*0.60)+sx(70), int(h*0.50)+sy(70)], fill=c3)
+    blob = blob.filter(ImageFilter.GaussianBlur(radius=max(sc(28), 8)))
+    img = Image.alpha_composite(img, blob)
+
+    # ── 필름 그레인 (CSS: SVG fractalNoise opacity .55, 타일링으로 근사) ─────
+    tile = 64
+    rng = random.Random(7)
+    gt = Image.new("L", (tile, tile))
+    gtp = gt.load()
+    for gy in range(tile):
+        for gx in range(tile):
+            gtp[gx, gy] = rng.randint(0, 255)
+    grain = Image.new("L", (w, h))
+    for ty in range(0, h, tile):
+        for tx in range(0, w, tile):
+            grain.paste(gt, (tx, ty))
+    img = Image.alpha_composite(img,
+        Image.merge("RGBA", [grain, grain, grain, Image.new("L", (w, h), 14)]))
+
+    draw = ImageDraw.Draw(img)
+    cx, cy = w // 2, h // 2
+
+    # ── 이름 첫 글자 대형 아웃라인 (CSS: 120px 900weight, text-stroke 1.5px) ─
+    initial = ((name or "").strip() or " ")[0]
+    init_px = sc(120)
+    s_rgb  = (255, 255, 255) if dark else (0, 0, 0)
+    s_a    = 36 if dark else 31        # .14 / .12
+    try:
+        ifont = ImageFont.truetype(FONT_PATH, init_px)
+        bb = draw.textbbox((0, 0), initial, font=ifont)
+        tx0 = cx - (bb[2]-bb[0])//2 - bb[0]
+        ty0 = cy - (bb[3]-bb[1])//2 - bb[1]
+        draw.text((tx0, ty0), initial, font=ifont,
+                  fill=(*bg_rgb, 255),
+                  stroke_width=max(2, int(init_px*0.013)),
+                  stroke_fill=(*s_rgb, s_a))
+    except Exception:
+        pass
+
+    # ── 아이콘 링 (CSS: 40x40, rgba(255,255,255,.06) bg, border .14) ─────────
+    rrx, rry = sx(20), sy(20)
+    rl = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    rd_ = ImageDraw.Draw(rl)
+    if dark:
+        rfill, rout = (255,255,255,15), (255,255,255,36)
+    else:
+        rfill, rout = (0,0,0,13), (0,0,0,31)
+    rd_.ellipse([cx-rrx, cy-rry, cx+rrx, cy+rry],
+                fill=rfill, outline=rout, width=max(1, sc(1)))
+    img = Image.alpha_composite(img, rl)
     draw = ImageDraw.Draw(img)
 
-    stripe_color = (58, 54, 102)
-    spacing = max(int(h * 0.06), 20)
-    for x in range(-h, w, spacing):
-        draw.line([(x, 0), (x + h, h)], fill=stripe_color, width=2)
+    # ── video-off 아이콘 (Feather icons, viewBox 0 0 24 24, 17x17px 기준) ────
+    iw, ih_ = sx(17), sy(17)
+    iox, ioy = cx - iw//2, cy - ih_//2
+    scx_, scy_ = iw/24.0, ih_/24.0
 
-    cx, cy = w // 2, int(h * 0.34)
-    r = max(int(h * 0.11), 18)
-    icon_color = (150, 140, 220)
-    lw = max(int(h * 0.006), 3)
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=icon_color, width=lw)
-    bw, bh = int(r * 0.8), int(r * 0.55)
-    draw.rounded_rectangle(
-        [cx - bw, cy - bh // 2, cx + bw // 2, cy + bh // 2],
-        radius=max(int(r * 0.1), 4), outline=icon_color, width=lw,
-    )
-    tri = int(bw * 0.45)
-    draw.polygon(
-        [
-            (cx + bw // 2, cy - bh // 3),
-            (cx + bw // 2 + tri, cy - tri),
-            (cx + bw // 2 + tri, cy + tri),
-            (cx + bw // 2, cy + bh // 3),
-        ],
-        outline=icon_color, width=lw,
-    )
-    draw.line([(cx - r + lw, cy - r + lw), (cx + r - lw, cy + r - lw)], fill=icon_color, width=lw + 2)
+    def vp(x, y):
+        return (iox + x*scx_, ioy + y*scy_)
 
-    name_size = max(int(h * 0.05), 14)
-    sub_size = max(int(h * 0.038), 12)
-    name_font = ImageFont.truetype(FONT_PATH, name_size)
-    sub_font = ImageFont.truetype(FONT_PATH, sub_size)
+    ic_s = (255,255,255,179) if dark else (30,20,10,153)
+    ilw  = max(1, round(1.8 * (scx_+scy_)/2))
+    # rect x=1 y=5 w=15 h=14 rx=2 → camera body
+    draw.rounded_rectangle([vp(1,5), vp(16,19)],
+                           radius=max(1, round(2*(scx_+scy_)/2)),
+                           outline=ic_s, width=ilw)
+    # M23 7 l-7 5 l7 5 V7 → video lens triangle
+    draw.line([vp(23,7), vp(16,12), vp(23,17), vp(23,7)], fill=ic_s, width=ilw)
+    # (1,1)→(23,23) → slash
+    draw.line([vp(1,1), vp(23,23)], fill=ic_s, width=ilw+1)
 
+    # ── 이름 라벨 (CSS: 13px 700, color rgba(255,255,255,.45)) ───────────────
+    name_px = max(sc(13), 9)
+    name_col = (255,255,255,115) if dark else (30,20,10,97)
     display_name = (name or "").strip()
     if display_name:
-        tw = draw.textlength(display_name, font=name_font)
-        draw.text((cx - tw / 2, int(h * 0.48)), display_name, font=name_font, fill=(201, 196, 240))
+        try:
+            nf = ImageFont.truetype(FONT_PATH, name_px)
+            draw.text((cx - draw.textlength(display_name, font=nf)/2, cy+rry+sy(2)),
+                      display_name, font=nf, fill=name_col)
+        except Exception:
+            pass
 
-    sub_text = "다음엔 꼭.."
-    tw = draw.textlength(sub_text, font=sub_font)
-    draw.text((cx - tw / 2, int(h * 0.58)), sub_text, font=sub_font, fill=(157, 151, 209))
+    # ── 하단 그라디언트 (CSS: rgba(0,0,0,.7) / rgba(220,210,190,.85)) ─────────
+    grad_h_ = sy(80)
+    glay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    gd_ = ImageDraw.Draw(glay)
+    g_rgb = (0,0,0) if dark else (220,210,190)
+    g_max = 179 if dark else 217
+    for gy_ in range(grad_h_):
+        a = int(g_max * (grad_h_-gy_) / grad_h_)
+        yp = h - grad_h_ + gy_
+        gd_.rectangle([0, yp, w, yp+1], fill=(*g_rgb, a))
+    img = Image.alpha_composite(img, glay)
+    draw = ImageDraw.Draw(img)
 
-    img.save(path)
+    # ── 하단 텍스트 (CSS: line1 11.5px 800, line2 10.5px 600) ────────────────
+    l1_px = max(sc(11), 9)
+    l2_px = max(sc(10), 8)
+    l1_col = (255,255,255,191) if dark else (30,20,10,153)
+    l2_col = (255,255,255, 97) if dark else (30,20,10, 89)
+    l2_y = h - sy(20)
+    l1_y = h - sy(36)
+    try:
+        f1 = ImageFont.truetype(FONT_PATH, l1_px)
+        f2 = ImageFont.truetype(FONT_PATH, l2_px)
+        t1 = "다음엔 꼭 함께해요"         # 이모지 제거 (NanumGothic 미지원)
+        t2 = "이번 미션은 참여하지 않았어요"
+        draw.text((cx - draw.textlength(t1, font=f1)/2, l1_y), t1, font=f1, fill=l1_col)
+        draw.text((cx - draw.textlength(t2, font=f2)/2, l2_y), t2, font=f2, fill=l2_col)
+    except Exception:
+        pass
+
+    img.convert("RGB").save(path)
 
 
 def probe_duration(local_video):
@@ -172,14 +270,8 @@ def lambda_handler(event, context):
             if d:
                 durations.append(d)
 
-        if not durations:
-            send_callback(callback_url, callback_secret, {
-                "missionId": mission_id, "success": False, "error": "No valid submitted videos"
-            })
-            return {"statusCode": 500}
-
-        # 가장 길게 찍은 사람 기준으로 맞추고, 짧게 찍은 사람은 무한 루프로 채운다
-        duration = min(max(durations), MAX_COLLAGE_DURATION)
+        # 전원 미제출이면 정적 이미지 콜라주를 3초짜리 영상으로 생성
+        duration = min(max(durations), MAX_COLLAGE_DURATION) if durations else 3.0
 
         # 2) 콜라주 영상 합성 (제출자는 실제 영상을 가장 긴 사람 기준으로 루프, 미제출자는 검은 화면 영상)
         collage_path = f"{tmp}/collage_{mission_id}.mp4"

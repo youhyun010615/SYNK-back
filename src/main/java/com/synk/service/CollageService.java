@@ -60,11 +60,6 @@ public class CollageService {
     public void triggerCollageIfReady(Mission mission) {
         int totalMembers = roomMemberRepository.countByRoom(mission.getRoom());
         List<Submission> submissions = submissionRepository.findByMission(mission);
-        long submittedCount = submissions.stream()
-                .filter(s -> s.getStatus() == Submission.SubmissionStatus.SUBMITTED)
-                .count();
-
-        if (submittedCount == 0) return;
 
         if (collageRepository.findByMission(mission).isPresent()) return;
 
@@ -96,13 +91,6 @@ public class CollageService {
                         return m;
                     })
                     .toList();
-
-            boolean hasAnySubmitted = submissionPayloads.stream()
-                    .anyMatch(m -> m.get("videoUrl") != null);
-            if (!hasAnySubmitted) {
-                collage.fail();
-                return;
-            }
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("missionId", mission.getId());
