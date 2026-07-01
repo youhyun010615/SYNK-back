@@ -5,6 +5,9 @@ import com.synk.entity.User;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+
 @Getter
 @Builder
 public class UserResponse {
@@ -15,8 +18,13 @@ public class UserResponse {
     private boolean missionNotification;
     private boolean resultNotification;
     private boolean highlightNotification;
+    private int daysSinceJoined;
 
     public static UserResponse from(User user) {
+        LocalDate joinedDate = user.getCreatedAt().toLocalDate();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        int days = (int) (today.toEpochDay() - joinedDate.toEpochDay()) + 1;
+
         return UserResponse.builder()
                 .userId(user.getId())
                 .name(user.getName())
@@ -24,6 +32,7 @@ public class UserResponse {
                 .missionNotification(user.isMissionAlert())
                 .resultNotification(user.isResultAlert())
                 .highlightNotification(user.isHighlightAlert())
+                .daysSinceJoined(days)
                 .build();
     }
 }
