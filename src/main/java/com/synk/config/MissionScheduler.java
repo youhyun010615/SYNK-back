@@ -118,11 +118,12 @@ public class MissionScheduler {
                 for (RoomMember member : members) {
                     User user = member.getUser();
                     if (user.isMissionAlert()) {
+                        String roomName = mission.getRoom().getName();
                         fcmService.sendAndSave(
                                 user,
                                 Notification.NotificationType.MISSION_START,
-                                "미션 도착! 지금 찍어요 📸",
-                                missionName + " · 5분 안에",
+                                "🚨 " + roomName + " 미션 떴다!",
+                                "🔥 " + missionName + " · 지금 바로 찍어요!",
                                 mission.getId()
                         );
                     }

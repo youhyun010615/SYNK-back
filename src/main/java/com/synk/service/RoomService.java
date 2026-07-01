@@ -374,8 +374,8 @@ public class RoomService {
             fcmService.sendAndSave(
                     member.getUser(),
                     Notification.NotificationType.MISSION_START,
-                    "미션 도착! 지금 찍어요 📸",
-                    mission.getMissionTemplate().getTitle() + " · 5분 안에",
+                    "🚨 " + room.getName() + " 미션 떴다!",
+                    "🔥 " + mission.getMissionTemplate().getTitle() + " · 지금 바로 찍어요!",
                     mission.getId()
             );
         }
