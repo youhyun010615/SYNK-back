@@ -155,8 +155,8 @@ public class CollageService {
                     fcmService.sendAndSave(
                             memberUser,
                             Notification.NotificationType.MISSION_COMPLETE,
-                            "결과가 도착했어요!",
-                            missionTitle + " 콜라주가 완성됐어요. 지금 확인해보세요.",
+                            "✨ 콜라주 완성!",
+                            "📽️ " + mission.getRoom().getName() + " · 다들 어떻게 찍었는지 확인해봐요!",
                             mission.getId()
                     );
                 }
