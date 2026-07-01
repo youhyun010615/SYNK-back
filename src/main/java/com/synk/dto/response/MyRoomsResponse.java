@@ -22,6 +22,7 @@ public class MyRoomsResponse {
         private String name;
         private int totalMissions;
         private int completedMissions;
+        private int dailyMissionCount;
         @JsonProperty("isAllCompleted")
         private boolean isAllCompleted;
         private String roomThumbnail;

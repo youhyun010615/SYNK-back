@@ -307,6 +307,7 @@ public class RoomService {
                         .name(room.getName())
                         .totalMissions(missions.size())
                         .completedMissions(completed)
+                        .dailyMissionCount(room.getDailyMissionCount())
                         .isAllCompleted(completed ==
                                 missions.size() && !missions.isEmpty())
                         .roomThumbnail(room.getThumbnail())
