@@ -38,6 +38,9 @@ public class Submission {
     @Column(name = "video_url", length = 255)
     private String videoUrl;
 
+    @Column(name = "horizontal", nullable = false)
+    private boolean horizontal;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SubmissionStatus status;
@@ -47,18 +50,19 @@ public class Submission {
     private LocalDateTime submittedAt;
 
     @Builder
-    public Submission(User user, Room room, Mission
-            mission, String videoUrl, SubmissionStatus status) {
+    public Submission(User user, Room room, Mission mission, String videoUrl, boolean horizontal, SubmissionStatus status) {
         this.user = user;
         this.room = room;
         this.mission = mission;
         this.videoUrl = videoUrl;
+        this.horizontal = horizontal;
         this.status = status;
         this.submittedAt = LocalDateTime.now();
     }
 
-    public void updateVideo(String newVideoUrl) {
+    public void updateVideo(String newVideoUrl, boolean horizontal) {
         this.videoUrl = newVideoUrl;
+        this.horizontal = horizontal;
         this.submittedAt = LocalDateTime.now();
     }
 

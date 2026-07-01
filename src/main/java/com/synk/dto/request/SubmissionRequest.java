@@ -10,5 +10,6 @@ public class SubmissionRequest {
     private Long roomId;
     private Long missionId;
     private String videoUrl;
+    private boolean horizontal; // 폰 가로 녹화 여부
 }
 

@@ -264,11 +264,14 @@ def lambda_handler(event, context):
                 # rotation 메타데이터 기반 수동 보정 (메타데이터는 이미 제거됨)
                 rotation = video_rotations.get(i, 0)
                 if rotation == 90:
-                    rotate_filter = "transpose=1,"   # 90° CW
+                    rotate_filter = "transpose=1,"
                 elif rotation in (270, -90):
-                    rotate_filter = "transpose=2,"   # 90° CCW
+                    rotate_filter = "transpose=2,"
                 elif abs(rotation) == 180:
                     rotate_filter = "vflip,hflip,"
+                elif submissions[i].get("horizontal"):
+                    # 메타데이터 없이 가로 녹화된 경우 (Chrome Android): transpose=1로 세로→가로 보정
+                    rotate_filter = "transpose=1,"
                 else:
                     rotate_filter = ""
                 # hflip: FE CSS scaleX(-1) 미러 프리뷰와 저장 영상 일치
