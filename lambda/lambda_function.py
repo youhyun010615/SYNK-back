@@ -242,9 +242,10 @@ def lambda_handler(event, context):
         inputs = []
         for i, (w, h, _, _) in enumerate(cells[:n]):
             if local_videos[i]:
+                # -autorotate 0: rotation 메타데이터 무시, raw 픽셀 그대로 사용
+                # → 폰 가로 녹화 시 FFmpeg이 자동으로 세로로 돌리는 문제 방지
                 # hflip: FE CSS scaleX(-1) 미러 프리뷰와 저장 영상 일치
-                # transpose 불필요: landscape 영상도 얼굴 픽셀은 정방향, scale+crop이 portrait 크롭 처리
-                inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
+                inputs += ["-stream_loop", "-1", "-autorotate", "0", "-i", local_videos[i]]
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
                     f"hflip,"
