@@ -38,7 +38,7 @@ public class Submission {
     @Column(name = "video_url", length = 255)
     private String videoUrl;
 
-    @Column(name = "horizontal", nullable = false)
+    @Column(name = "horizontal", nullable = false, columnDefinition = "boolean DEFAULT false")
     private boolean horizontal;
 
     @Enumerated(EnumType.STRING)
