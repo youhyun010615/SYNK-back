@@ -126,9 +126,7 @@ def build_missed_image(path, w, h, name, dark=True):
 
 def probe_video_info(local_video):
     """ffprobe가 레이어에 없어 ffmpeg stderr에서 직접 파싱한다.
-    브라우저 MediaRecorder로 녹화된 webm/mp4는 헤더에 Duration이 없어(N/A)
-    전체를 디코딩(-f null)해 마지막 time= 값을 읽는다.
-    Returns: (duration_seconds, width, height) — 파싱 실패 시 None"""
+    Returns: (duration_seconds, width, height, rotation_degrees)"""
     result = subprocess.run(
         ["/opt/ffmpeg", "-i", local_video, "-f", "null", "-"],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
@@ -141,12 +139,15 @@ def probe_video_info(local_video):
         h, m, s = times[-1]
         duration = int(h) * 3600 + int(m) * 60 + float(s)
 
-    # "Video: vp9, yuv420p(tv), 640x480" 같은 패턴에서 해상도 추출
     dim_match = re.search(r'Video:.*?\s(\d{2,4})x(\d{2,4})', stderr)
     width = int(dim_match.group(1)) if dim_match else None
     height = int(dim_match.group(2)) if dim_match else None
 
-    return duration, width, height
+    # 폰 가로 녹화 시 MP4에 rotation 메타데이터가 있을 수 있음 (e.g. rotate: 90)
+    rotate_match = re.search(r'rotate\s*:\s*(-?\d+)', stderr)
+    rotation = int(rotate_match.group(1)) if rotate_match else 0
+
+    return duration, width, height, rotation
 
 
 CELL_GAP = 6  # 셀 간 간격 (px)
@@ -212,9 +213,10 @@ def lambda_handler(event, context):
     cells = get_cells(layout)
 
     with tempfile.TemporaryDirectory() as tmp:
-        # 1) 제출된 영상 다운로드 + 길이·해상도 측정 (미제출자는 videoUrl 없음 → 검은 화면으로 채움)
+        # 1) 제출된 영상 다운로드 + 길이·해상도·rotation 측정
         local_videos = [None] * n
-        video_dims = {}  # index → (width, height)
+        video_dims = {}     # index → (width, height)
+        video_rotations = {}  # index → rotation degrees (0/90/180/270)
         durations = []
         for i, sub in enumerate(submissions):
             video_url = sub.get("videoUrl")
@@ -225,7 +227,12 @@ def lambda_handler(event, context):
             print(f"Downloading s3://{bucket}/{key}")
             s3.download_file(bucket, key, local_raw)
 
-            # rotation 메타데이터 제거 (stream copy): 폰 가로 녹화 시 FFmpeg autorotate 방지
+            # raw에서 rotation 메타데이터 먼저 읽기
+            d, vid_w, vid_h, rotation = probe_video_info(local_raw)
+            print(f"  → video[{i}] {vid_w}x{vid_h}, duration={d}, rotation={rotation}")
+
+            # rotation 메타데이터 제거 (stream copy) — FFmpeg autorotate 방지
+            # filter_complex에서 rotation을 수동으로 보정할 것
             local_video = f"{tmp}/input_{i}.mp4"
             strip = subprocess.run(
                 ["/opt/ffmpeg", "-y", "-loglevel", "error",
@@ -238,12 +245,11 @@ def lambda_handler(event, context):
                 local_video = local_raw
 
             local_videos[i] = local_video
-            d, vid_w, vid_h = probe_video_info(local_video)
             if d:
                 durations.append(d)
             if vid_w and vid_h:
                 video_dims[i] = (vid_w, vid_h)
-                print(f"  → video[{i}] {vid_w}x{vid_h}, duration={d}")
+            video_rotations[i] = rotation
 
         # 전원 미제출이면 정적 이미지 콜라주를 3초짜리 영상으로 생성
         duration = min(max(durations), MAX_COLLAGE_DURATION) if durations else 3.0
@@ -255,11 +261,21 @@ def lambda_handler(event, context):
         inputs = []
         for i, (w, h, _, _) in enumerate(cells[:n]):
             if local_videos[i]:
+                # rotation 메타데이터 기반 수동 보정 (메타데이터는 이미 제거됨)
+                rotation = video_rotations.get(i, 0)
+                if rotation == 90:
+                    rotate_filter = "transpose=1,"   # 90° CW
+                elif rotation in (270, -90):
+                    rotate_filter = "transpose=2,"   # 90° CCW
+                elif abs(rotation) == 180:
+                    rotate_filter = "vflip,hflip,"
+                else:
+                    rotate_filter = ""
                 # hflip: FE CSS scaleX(-1) 미러 프리뷰와 저장 영상 일치
                 inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
-                    f"hflip,"
+                    f"{rotate_filter}hflip,"
                     f"scale={w}:{h}:force_original_aspect_ratio=increase,"
                     f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}]"
                 )
