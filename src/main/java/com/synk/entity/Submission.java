@@ -57,11 +57,13 @@ public class Submission {
         this.submittedAt = LocalDateTime.now();
     }
 
+    public void updateVideo(String newVideoUrl) {
+        this.videoUrl = newVideoUrl;
+        this.submittedAt = LocalDateTime.now();
+    }
+
     public enum SubmissionStatus {
         SUBMITTED, MISSED
     }
-
-
-
 }
 

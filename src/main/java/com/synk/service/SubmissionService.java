@@ -59,23 +59,23 @@ public class SubmissionService {
             throw new CustomException(ErrorCode.MISSION_EXPIRED);
         }
 
-        if (submissionRepository.existsByMissionAndUser(mission,
-                user)) {
-            throw new CustomException(ErrorCode.ALREADY_SUBMITTED);
-        }
-
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new
                         CustomException(ErrorCode.ROOM_NOT_FOUND));
 
-        Submission submission =
-                submissionRepository.save(Submission.builder()
+        // 재촬영: 이미 제출한 경우 videoUrl만 업데이트
+        Submission submission = submissionRepository.findByMissionAndUser(mission, user)
+                .map(existing -> {
+                    existing.updateVideo(request.getVideoUrl());
+                    return existing;
+                })
+                .orElseGet(() -> submissionRepository.save(Submission.builder()
                         .user(user)
                         .room(room)
                         .mission(mission)
                         .videoUrl(request.getVideoUrl())
                         .status(Submission.SubmissionStatus.SUBMITTED)
-                        .build());
+                        .build()));
 
         // 전원 제출 시 즉시 미션 완료 처리
         int totalMembers = roomMemberRepository.countByRoom(room);
