@@ -241,16 +241,12 @@ def lambda_handler(event, context):
         inputs = []
         for i, (w, h, _, _) in enumerate(cells[:n]):
             if local_videos[i]:
-                # 가로(landscape) 영상이면 90° CCW 회전으로 세로(portrait)로 변환
-                vid_w, vid_h = video_dims.get(i, (None, None))
-                is_landscape = vid_w and vid_h and vid_w > vid_h
-                rotate_filter = "transpose=2," if is_landscape else ""
-
-                # 프론트 카메라 selfie 영상은 CSS scaleX(-1) 미러링과 일치시키기 위해 hflip 적용
+                # hflip: FE CSS scaleX(-1) 미러 프리뷰와 저장 영상 일치
+                # transpose 불필요: landscape 영상도 얼굴 픽셀은 정방향, scale+crop이 portrait 크롭 처리
                 inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
-                    f"{rotate_filter}hflip,"
+                    f"hflip,"
                     f"scale={w}:{h}:force_original_aspect_ratio=increase,"
                     f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}]"
                 )
