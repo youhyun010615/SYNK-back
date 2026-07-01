@@ -221,9 +221,22 @@ def lambda_handler(event, context):
             if not video_url:
                 continue
             bucket, key = parse_s3_url(video_url)
-            local_video = f"{tmp}/input_{i}.mp4"
+            local_raw = f"{tmp}/raw_{i}.mp4"
             print(f"Downloading s3://{bucket}/{key}")
-            s3.download_file(bucket, key, local_video)
+            s3.download_file(bucket, key, local_raw)
+
+            # rotation 메타데이터 제거 (stream copy): 폰 가로 녹화 시 FFmpeg autorotate 방지
+            local_video = f"{tmp}/input_{i}.mp4"
+            strip = subprocess.run(
+                ["/opt/ffmpeg", "-y", "-loglevel", "error",
+                 "-i", local_raw, "-c", "copy", "-map_metadata", "-1", "-map", "0",
+                 local_video],
+                stderr=subprocess.PIPE, text=True
+            )
+            if strip.returncode != 0:
+                print(f"  metadata strip failed, using raw: {strip.stderr}")
+                local_video = local_raw
+
             local_videos[i] = local_video
             d, vid_w, vid_h = probe_video_info(local_video)
             if d:
