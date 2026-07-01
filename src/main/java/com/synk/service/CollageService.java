@@ -88,6 +88,7 @@ public class CollageService {
                         m.put("name", member.getUser().getName());
                         m.put("videoUrl", s != null ? s.getVideoUrl() : null);
                         m.put("horizontal", s != null && s.isHorizontal());
+                        m.put("facingMode", s != null ? s.getFacingMode() : "user");
                         m.put("status", s != null ? s.getStatus().name() : "MISSED");
                         return m;
                     })

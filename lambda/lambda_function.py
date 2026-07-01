@@ -229,7 +229,8 @@ def lambda_handler(event, context):
 
             # raw에서 rotation 메타데이터 먼저 읽기
             d, vid_w, vid_h, rotation = probe_video_info(local_raw)
-            print(f"  → video[{i}] {vid_w}x{vid_h}, duration={d}, rotation={rotation}")
+            horizontal_flag = submissions[i].get("horizontal", False)
+            print(f"  → video[{i}] {vid_w}x{vid_h}, duration={d}, rotation={rotation}, horizontal={horizontal_flag}")
 
             # rotation 메타데이터 제거 (stream copy) — FFmpeg autorotate 방지
             # filter_complex에서 rotation을 수동으로 보정할 것
@@ -263,22 +264,33 @@ def lambda_handler(event, context):
             if local_videos[i]:
                 # rotation 메타데이터 기반 수동 보정 (메타데이터는 이미 제거됨)
                 rotation = video_rotations.get(i, 0)
+                is_portrait_horizontal = submissions[i].get("horizontal") and video_dims.get(i, (1, 0))[0] < video_dims.get(i, (0, 1))[1]
+
                 if rotation == 90:
                     rotate_filter = "transpose=1,"
                 elif rotation in (270, -90):
                     rotate_filter = "transpose=2,"
                 elif abs(rotation) == 180:
                     rotate_filter = "vflip,hflip,"
-                elif submissions[i].get("horizontal"):
-                    # 메타데이터 없이 가로 녹화된 경우 (Chrome Android): transpose=1로 세로→가로 보정
-                    rotate_filter = "transpose=1,"
+                elif is_portrait_horizontal:
+                    # Chrome Android 가로 촬영: portrait 픽셀 (480×640) → CW 회전으로 정면 보정
+                    facing = submissions[i].get("facingMode", "user")
+                    if facing == "environment":
+                        # 후면 카메라: 추가로 180도 회전 필요 (vflip)
+                        rotate_filter = "transpose=1,vflip,"
+                    else:
+                        # 전면 카메라 (user): 회전만
+                        rotate_filter = "transpose=1,"
                 else:
                     rotate_filter = ""
+
                 # hflip: FE CSS scaleX(-1) 미러 프리뷰와 저장 영상 일치
+                hflip_part = "hflip,"
+
                 inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
-                    f"{rotate_filter}hflip,"
+                    f"{rotate_filter}{hflip_part}"
                     f"scale={w}:{h}:force_original_aspect_ratio=increase,"
                     f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}]"
                 )

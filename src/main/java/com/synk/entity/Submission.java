@@ -41,6 +41,9 @@ public class Submission {
     @Column(name = "horizontal", nullable = false, columnDefinition = "boolean DEFAULT false")
     private boolean horizontal;
 
+    @Column(name = "facing_mode", length = 20)
+    private String facingMode;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SubmissionStatus status;
@@ -50,19 +53,21 @@ public class Submission {
     private LocalDateTime submittedAt;
 
     @Builder
-    public Submission(User user, Room room, Mission mission, String videoUrl, boolean horizontal, SubmissionStatus status) {
+    public Submission(User user, Room room, Mission mission, String videoUrl, boolean horizontal, String facingMode, SubmissionStatus status) {
         this.user = user;
         this.room = room;
         this.mission = mission;
         this.videoUrl = videoUrl;
         this.horizontal = horizontal;
+        this.facingMode = facingMode;
         this.status = status;
         this.submittedAt = LocalDateTime.now();
     }
 
-    public void updateVideo(String newVideoUrl, boolean horizontal) {
+    public void updateVideo(String newVideoUrl, boolean horizontal, String facingMode) {
         this.videoUrl = newVideoUrl;
         this.horizontal = horizontal;
+        this.facingMode = facingMode;
         this.submittedAt = LocalDateTime.now();
     }
 
