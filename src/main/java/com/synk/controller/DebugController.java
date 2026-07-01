@@ -3,7 +3,9 @@ package com.synk.controller;
 import com.synk.entity.Mission;
 import com.synk.entity.MissionTemplate;
 import com.synk.entity.MissionTimeSlot;
+import com.synk.entity.Notification;
 import com.synk.entity.Room;
+import com.synk.entity.RoomMember;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.global.response.ApiResponse;
@@ -13,6 +15,7 @@ import com.synk.repository.MissionTemplateRepository;
 import com.synk.repository.MissionTimeSlotRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
+import com.synk.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +36,7 @@ public class DebugController {
     private final MissionTimeSlotRepository missionTimeSlotRepository;
     private final CollageRepository collageRepository;
     private final RoomMemberRepository roomMemberRepository;
+    private final FcmService fcmService;
 
     /** 개발용: 특정 방에 미션을 즉시 생성하고 ACTIVE 상태로 만든다. */
     @PostMapping("/rooms/{roomId}/trigger-mission")
@@ -68,6 +72,17 @@ public class DebugController {
                 .build());
         mission.activate();
         missionRepository.save(mission);
+
+        List<RoomMember> members = roomMemberRepository.findByRoom(room);
+        for (RoomMember member : members) {
+            fcmService.sendAndSave(
+                    member.getUser(),
+                    Notification.NotificationType.MISSION_START,
+                    "미션 시작!",
+                    room.getName() + " 방에 미션이 시작됐어요!",
+                    mission.getId()
+            );
+        }
 
         return ResponseEntity.ok(ApiResponse.success(mission.getId(), "미션 강제 트리거 완료"));
     }
