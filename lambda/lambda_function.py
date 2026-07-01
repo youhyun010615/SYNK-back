@@ -230,7 +230,8 @@ def lambda_handler(event, context):
             # raw에서 rotation 메타데이터 먼저 읽기
             d, vid_w, vid_h, rotation = probe_video_info(local_raw)
             horizontal_flag = submissions[i].get("horizontal", False)
-            print(f"  → video[{i}] {vid_w}x{vid_h}, duration={d}, rotation={rotation}, horizontal={horizontal_flag}")
+            facing_flag = submissions[i].get("facingMode")
+            print(f"  → video[{i}] {vid_w}x{vid_h}, duration={d}, rotation={rotation}, horizontal={horizontal_flag}, facingMode={facing_flag}")
 
             # rotation 메타데이터 제거 (stream copy) — FFmpeg autorotate 방지
             # filter_complex에서 rotation을 수동으로 보정할 것
@@ -266,6 +267,7 @@ def lambda_handler(event, context):
                 rotation = video_rotations.get(i, 0)
                 is_portrait_horizontal = submissions[i].get("horizontal") and video_dims.get(i, (1, 0))[0] < video_dims.get(i, (0, 1))[1]
 
+                is_rear_camera = False
                 if rotation == 90:
                     rotate_filter = "transpose=1,"
                 elif rotation in (270, -90):
@@ -274,18 +276,14 @@ def lambda_handler(event, context):
                     rotate_filter = "vflip,hflip,"
                 elif is_portrait_horizontal:
                     # Chrome Android 가로 촬영: portrait 픽셀 (480×640) → CW 회전으로 정면 보정
-                    facing = submissions[i].get("facingMode", "user")
-                    if facing == "environment":
-                        # 후면 카메라: 추가로 180도 회전 필요 (vflip)
-                        rotate_filter = "transpose=1,vflip,"
-                    else:
-                        # 전면 카메라 (user): 회전만
-                        rotate_filter = "transpose=1,"
+                    rotate_filter = "transpose=1,"
+                    is_rear_camera = submissions[i].get("facingMode") == "environment"
                 else:
                     rotate_filter = ""
 
-                # hflip: FE CSS scaleX(-1) 미러 프리뷰와 저장 영상 일치
-                hflip_part = "hflip,"
+                # hflip: 전면 카메라는 CSS scaleX(-1) 미러 프리뷰와 일치시키기 위해 좌우 반전
+                # 후면 카메라는 미러가 아니므로 hflip 생략 (전면 대비 180도 차이 보정)
+                hflip_part = "" if is_rear_camera else "hflip,"
 
                 inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
                 filter_parts.append(
