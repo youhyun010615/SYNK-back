@@ -73,13 +73,14 @@ public class DebugController {
         mission.activate();
         missionRepository.save(mission);
 
+        String missionName = template.getTitle();
         List<RoomMember> members = roomMemberRepository.findByRoom(room);
         for (RoomMember member : members) {
             fcmService.sendAndSave(
                     member.getUser(),
                     Notification.NotificationType.MISSION_START,
-                    "미션 시작!",
-                    room.getName() + " 방에 미션이 시작됐어요!",
+                    "미션 도착! 지금 찍어요 📸",
+                    missionName + " · 5분 안에",
                     mission.getId()
             );
         }

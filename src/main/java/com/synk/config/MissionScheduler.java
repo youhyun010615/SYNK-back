@@ -121,8 +121,8 @@ public class MissionScheduler {
                         fcmService.sendAndSave(
                                 user,
                                 Notification.NotificationType.MISSION_START,
-                                "미션 시작!",
-                                "지금 바로 미션을 수행하세요: " + missionName,
+                                "미션 도착! 지금 찍어요 📸",
+                                missionName + " · 5분 안에",
                                 mission.getId()
                         );
                     }

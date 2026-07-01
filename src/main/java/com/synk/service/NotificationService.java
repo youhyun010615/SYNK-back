@@ -7,6 +7,7 @@ import com.synk.entity.Notification;
 import com.synk.entity.User;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
+import com.synk.repository.MissionRepository;
 import com.synk.repository.NotificationRepository;
 import com.synk.repository.UserRepository;
 import com.synk.util.SecurityUtil;
@@ -24,6 +25,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final MissionRepository missionRepository;
 
     @Transactional(readOnly = true)
     public NotificationResponse getNotifications() {
@@ -36,12 +38,12 @@ public class NotificationService {
 
         List<NotificationResponse.NotificationInfo> today = all.stream()
                         .filter(n -> n.getCreatedAt().isAfter(todayStart))
-                        .map(NotificationResponse.NotificationInfo::from)
+                        .map(n -> NotificationResponse.NotificationInfo.from(n, resolveRoomName(n)))
                         .toList();
 
         List<NotificationResponse.NotificationInfo> thisWeek = all.stream()
                 .filter(n -> n.getCreatedAt().isAfter(weekStart) && n.getCreatedAt().isBefore(todayStart))
-                .map(NotificationResponse.NotificationInfo::from)
+                .map(n -> NotificationResponse.NotificationInfo.from(n, resolveRoomName(n)))
                 .toList();
 
         return NotificationResponse.builder()
@@ -63,6 +65,13 @@ public class NotificationService {
         User user = getUser();
         List<Notification> all = notificationRepository.findByUserOrderByCreatedAtDesc(user);
         all.forEach(Notification::read);
+    }
+
+    private String resolveRoomName(Notification n) {
+        if (n.getRelatedId() == null) return null;
+        return missionRepository.findById(n.getRelatedId())
+                .map(m -> m.getRoom().getName())
+                .orElse(null);
     }
 
     private User getUser() {

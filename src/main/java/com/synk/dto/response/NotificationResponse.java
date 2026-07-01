@@ -26,8 +26,9 @@ public class NotificationResponse {
         private LocalDateTime createdAt;
         private boolean isRead;
         private Long relatedId;
+        private String roomName;
 
-        public static NotificationInfo from(Notification notification) {
+        public static NotificationInfo from(Notification notification, String roomName) {
             return NotificationInfo.builder()
                     .id(notification.getId())
                     .type(notification.getType().name())
@@ -36,6 +37,7 @@ public class NotificationResponse {
                     .createdAt(notification.getCreatedAt())
                     .isRead(notification.isRead())
                     .relatedId(notification.getRelatedId())
+                    .roomName(roomName)
                     .build();
         }
     }
