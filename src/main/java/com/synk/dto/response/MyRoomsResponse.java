@@ -46,6 +46,7 @@ public class MyRoomsResponse {
     @Builder
     public static class MemberProfile {
         private Long userId;
+        private String name;
         private String profileImage;
     }
 }

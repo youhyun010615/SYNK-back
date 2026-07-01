@@ -2,6 +2,7 @@ package com.synk.controller;
 
 import com.synk.dto.response.CollectionDetailResponse;
 import com.synk.dto.response.CollectionResponse;
+import java.util.List;
 import com.synk.global.response.ApiResponse;
 import com.synk.service.CollectionService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,12 @@ public class CollectionController {
                 collectionService.getCollections();
         return
                 ResponseEntity.ok(ApiResponse.success(response, "도감 조회 성공"));
+    }
+
+    @GetMapping("/missions/catalog")
+    public ResponseEntity<ApiResponse<List<CollectionResponse.MissionSummary>>> getMissionCatalog() {
+        return ResponseEntity.ok(ApiResponse.success(
+                collectionService.getMissionCatalog(), "미수집 미션 목록 조회 성공"));
     }
 
     @GetMapping("/missions/{missionId}")

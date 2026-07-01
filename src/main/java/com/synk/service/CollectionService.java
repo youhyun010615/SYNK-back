@@ -86,6 +86,29 @@ public class CollectionService {
         return CollectionDetailResponse.from(template, records);
     }
 
+    @Transactional(readOnly = true)
+    public List<CollectionResponse.MissionSummary> getMissionCatalog() {
+        User user = getUser();
+
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll();
+        List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
+
+        java.util.Set<Long> completedTemplateIds = records.stream()
+                .map(r -> r.getMissionTemplate().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        return allTemplates.stream()
+                .filter(t -> !completedTemplateIds.contains(t.getId()))
+                .map(t -> CollectionResponse.MissionSummary.builder()
+                        .missionId(t.getId())
+                        .title(t.getTitle())
+                        .thumbnail(null)
+                        .completedTimes(0)
+                        .lastCompletedDate(null)
+                        .build())
+                .toList();
+    }
+
     private User getUser() {
         Long userId = SecurityUtil.getCurrentUserId();
         return userRepository.findById(userId)

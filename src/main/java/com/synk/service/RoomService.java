@@ -280,7 +280,7 @@ public class RoomService {
                             .map(m ->
                                     MyRoomsResponse.MemberProfile.builder()
                                             .userId(m.getUser().getId())
-
+                                            .name(m.getUser().getName())
                                             .profileImage(m.getUser().getProfileImage())
                                             .build())
                             .toList();
@@ -368,16 +368,6 @@ public class RoomService {
             missionRepository.save(mission);
         }
 
-        List<RoomMember> members = roomMemberRepository.findByRoom(room);
-        for (RoomMember member : members) {
-            fcmService.sendAndSave(
-                    member.getUser(),
-                    Notification.NotificationType.MISSION_START,
-                    "미션 시작!",
-                    room.getName() + " 방에 미션이 시작됐어요!",
-                    mission.getId()
-            );
-        }
         return mission.getId();
     }
 
