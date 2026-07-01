@@ -14,14 +14,14 @@ s3 = boto3.client('s3', region_name='ap-northeast-2')
 BUCKET = os.environ.get('S3_BUCKET', 'synk-videos')
 REGION = os.environ.get('AWS_REGION_NAME', 'ap-northeast-2')
 
-# 항상 2열 레이아웃, 홀수면 마지막 행에 셀 1개(전체 너비)
+# 1~6명: 1열(전체 너비), 7명~: 2열
 LAYOUTS = {
     1:  [[1]],
-    2:  [[2]],
-    3:  [[2], [1]],
-    4:  [[2], [2]],
-    5:  [[2], [2], [1]],
-    6:  [[2], [2], [2]],
+    2:  [[1], [1]],
+    3:  [[1], [1], [1]],
+    4:  [[1], [1], [1], [1]],
+    5:  [[1], [1], [1], [1], [1]],
+    6:  [[1], [1], [1], [1], [1], [1]],
     7:  [[2], [2], [2], [1]],
     8:  [[2], [2], [2], [2]],
     9:  [[2], [2], [2], [2], [1]],
@@ -151,30 +151,21 @@ def probe_video_info(local_video):
 
 CELL_GAP = 6  # 셀 간 간격 (px)
 
-# 셀 비율: 가로(16:9) — 2열 기준 cell_w = (540-18)//2 = 261, cell_h = 261*9//16 = 147
-CELL_W_2COL = (CANVAS_W - CELL_GAP * 3) // 2
-CELL_H = CELL_W_2COL * 9 // 16  # 16:9 landscape 비율
-
 def get_cells(rows_config):
     n_rows = len(rows_config)
-    total_h = n_rows * CELL_H + CELL_GAP * (n_rows + 1)
-    # 그리드를 캔버스 중앙에 배치
-    y_offset = (CANVAS_H - total_h) // 2
-
+    total_gap_h = CELL_GAP * (n_rows + 1)
+    row_h = (CANVAS_H - total_gap_h) // n_rows  # 캔버스 높이를 행 수로 균등 분할
     cells = []
-    y = y_offset + CELL_GAP
+    y = CELL_GAP
     for row in rows_config:
         cols = row[0]
-        if cols == 1:
-            # 홀수 마지막 셀: 전체 너비로 중앙 배치
-            cw = CANVAS_W - CELL_GAP * 2
-            cells.append((cw, CELL_H, CELL_GAP, y))
-        else:
-            x = CELL_GAP
-            for _ in range(cols):
-                cells.append((CELL_W_2COL, CELL_H, x, y))
-                x += CELL_W_2COL + CELL_GAP
-        y += CELL_H + CELL_GAP
+        total_gap_w = CELL_GAP * (cols + 1)
+        cell_w = (CANVAS_W - total_gap_w) // cols
+        x = CELL_GAP
+        for _ in range(cols):
+            cells.append((cell_w, row_h, x, y))
+            x += cell_w + CELL_GAP
+        y += row_h + CELL_GAP
     return cells
 
 
