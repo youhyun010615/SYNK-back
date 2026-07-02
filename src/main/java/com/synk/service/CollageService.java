@@ -154,6 +154,8 @@ public class CollageService {
             for (RoomMember member : roomMemberRepository.findByRoom(mission.getRoom())) {
                 User memberUser = member.getUser();
                 if (memberUser.isResultAlert()) {
+                    log.info("MISSION_COMPLETE 발송 대상: userId={}, name={}, resultAlert=true",
+                            memberUser.getId(), memberUser.getName());
                     fcmService.sendAndSave(
                             memberUser,
                             Notification.NotificationType.MISSION_COMPLETE,
@@ -161,6 +163,9 @@ public class CollageService {
                             "📽️ " + mission.getRoom().getName() + " · 다들 어떻게 찍었는지 확인해봐요!",
                             mission.getId()
                     );
+                } else {
+                    log.info("MISSION_COMPLETE 스킵(resultAlert=false): userId={}, name={}",
+                            memberUser.getId(), memberUser.getName());
                 }
             }
         } else {

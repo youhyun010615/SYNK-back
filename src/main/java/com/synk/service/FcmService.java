@@ -36,6 +36,9 @@ public class FcmService {
 
         // 유저가 등록한 모든 기기(폰, 맥북 등)로 각각 전송
         List<UserFcmToken> tokens = userFcmTokenRepository.findByUser(user);
+        if (tokens.isEmpty()) {
+            log.warn("FCM 토큰 없음 — push 미발송: userId={}, type={}", user.getId(), type);
+        }
         for (UserFcmToken userFcmToken : tokens) {
             sendToToken(user.getId(), userFcmToken.getToken(), title, body);
         }
