@@ -29,6 +29,8 @@ public class CollectionDetailResponse {
         private String date;
         private String thumbnail;
         private String videoUrl;
+        private boolean horizontal;   // 폰 가로 촬영 여부 (FE 영상 회전 판단용)
+        private String facingMode;    // "user"(전면) | "environment"(후면)
 
         private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
@@ -39,6 +41,8 @@ public class CollectionDetailResponse {
                     .date(record.getDate().format(DATE_FORMAT))
                     .thumbnail(record.getThumbnail())
                     .videoUrl(record.getSubmission().getVideoUrl())
+                    .horizontal(record.getSubmission().isHorizontal())
+                    .facingMode(record.getSubmission().getFacingMode())
                     .build();
         }
     }

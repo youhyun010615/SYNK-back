@@ -276,13 +276,17 @@ def lambda_handler(event, context):
                     rotate_filter = "vflip,hflip,"
                 elif is_portrait_horizontal:
                     # Chrome Android 가로 촬영: portrait 픽셀 (480×640) → CW 회전으로 정면 보정
-                    rotate_filter = "transpose=1,"
-                    is_rear_camera = submissions[i].get("facingMode") == "environment"
+                    # 후면 카메라는 전면 대비 180도 뒤집혀 저장됨 → vflip,hflip(=180도 회전) 추가
+                    if submissions[i].get("facingMode") == "environment":
+                        rotate_filter = "transpose=1,vflip,hflip,"
+                        is_rear_camera = True
+                    else:
+                        rotate_filter = "transpose=1,"
                 else:
                     rotate_filter = ""
 
-                # hflip: 전면 카메라는 CSS scaleX(-1) 미러 프리뷰와 일치시키기 위해 좌우 반전
-                # 후면 카메라는 미러가 아니므로 hflip 생략 (전면 대비 180도 차이 보정)
+                # hflip: 전면 카메라만 CSS scaleX(-1) 미러 프리뷰와 일치시키기 위해 좌우 반전
+                # 후면 카메라는 미러가 아니므로 hflip 생략
                 hflip_part = "" if is_rear_camera else "hflip,"
 
                 inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
