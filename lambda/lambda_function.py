@@ -22,105 +22,145 @@ LAYOUTS = {
     4:  [[1], [1], [1], [1]],
     5:  [[1], [1], [1], [1], [1]],
     6:  [[1], [1], [1], [1], [1], [1]],
-    7:  [[2], [2], [2], [1]],
+    7:  [[2], [2], [2], [2, 1]],
     8:  [[2], [2], [2], [2]],
-    9:  [[2], [2], [2], [2], [1]],
+    9:  [[2], [2], [2], [2], [2, 1]],
     10: [[2], [2], [2], [2], [2]],
 }
 
-CANVAS_W = 540
-CANVAS_H = 960
-FPS = 24
+CANVAS_W = 720
+CANVAS_H = 1280
+FPS = 30
 MAX_COLLAGE_DURATION = 15.0  # 폭주 방지용 상한선
 FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "NanumGothic.ttc")
 
 
 def build_missed_image(path, w, h, name, dark=True):
-    """미제출자 placeholder PNG — TV 지지직 노이즈 배경"""
-    import random
+    """미제출자 placeholder PNG — FE .missed-panel 스펙 재현
+    (base #0c0e1c + 상단 블루 글로우 + 대각선 스트라이프 + 글래스 카드 + 미참여 배지)"""
+    from PIL import ImageFilter
 
     short = min(w, h)
     cx = w // 2
 
-    # ── TV 지지직 노이즈 배경 ─────────────────────────────────────────────────
-    rng = random.Random()
-    if dark:
-        lo, hi = 8, 52
-    else:
-        lo, hi = 155, 215
-    pixels = []
-    for y in range(h):
-        scanline = 0.72 if (y % 2 == 0) else 1.0  # 수평 스캔라인 효과
-        for x in range(w):
-            v = int(rng.randint(lo, hi) * scanline)
-            pixels.append((v, v, v, 255))
-    img = Image.new("RGBA", (w, h))
-    img.putdata(pixels)
+    # ── base ────────────────────────────────────────────────────────────────
+    img = Image.new("RGBA", (w, h), (12, 14, 28, 255))  # #0c0e1c
 
-    # ── 아이콘 중심 위치 ──────────────────────────────────────────────────────
-    rr = max(int(short * 0.10), 12)
-    cy = int(h * 0.38)
+    # ── 상단 블루 글로우 (radial, 상단 중앙) ─────────────────────────────────
+    sw, sh = max(2, w // 6), max(2, h // 6)
+    gcx, gcy = sw * 0.5, sh * 0.16
+    grad = sh * 0.62  # 글로우 반경
+    glow_col = (58, 96, 178)  # 파랑
+    small = []
+    for y in range(sh):
+        for x in range(sw):
+            d = (((x - gcx) ** 2 + (y - gcy) ** 2) ** 0.5) / grad
+            a = 0.0 if d >= 1.0 else (1.0 - d) ** 1.6
+            small.append((glow_col[0], glow_col[1], glow_col[2], int(150 * a)))
+    glow = Image.new("RGBA", (sw, sh))
+    glow.putdata(small)
+    img = Image.alpha_composite(img, glow.resize((w, h), Image.BILINEAR))
 
-    # ── 아이콘 링 (반투명 원) ─────────────────────────────────────────────────
-    rl = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    rd = ImageDraw.Draw(rl)
-    if dark:
-        rfill = (255, 255, 255, 45)
-        rout  = (255, 255, 255, 130)
-    else:
-        rfill = (0, 0, 0, 45)
-        rout  = (0, 0, 0, 130)
-    rd.ellipse([cx-rr, cy-rr, cx+rr, cy+rr],
-               fill=rfill, outline=rout, width=max(2, rr//10))
-    img = Image.alpha_composite(img, rl)
-    draw = ImageDraw.Draw(img)
+    # ── 대각선 스트라이프 텍스처 (-55deg, opacity 0.025) ─────────────────────
+    stripe = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(stripe)
+    step = max(14, int(short * 0.06))
+    dx = int(h * 1.5)  # -55도 기울기용 수평 이동량
+    sa = 7  # 0.025 * 255
+    for i in range(-dx, w + dx, step):
+        sd.line([(i, h), (i + dx, 0)], fill=(255, 255, 255, sa), width=1)
+    img = Image.alpha_composite(img, stripe)
 
-    # ── video-off 아이콘 ──────────────────────────────────────────────────────
-    isize = int(rr * 1.05)
-    iox, ioy = cx - isize//2, cy - isize//2
-    sx_, sy_ = isize/24.0, isize/24.0
+    def font(px, bold=False):
+        try:
+            return ImageFont.truetype(FONT_PATH, px, index=1 if bold else 0)
+        except Exception:
+            try:
+                return ImageFont.truetype(FONT_PATH, px)
+            except Exception:
+                return None
+
+    # 반투명 요소는 별도 레이어에 그린 뒤 합성해야 알파 블렌딩됨
+    # (ImageDraw는 RGBA 이미지에 반투명 fill을 덮어써버려 불투명해짐)
+    ov = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(ov, "RGBA")
+
+    # ── 글래스 카드 (아주 옅은 반투명 rounded rect) ──────────────────────────
+    card = int(short * 0.30)
+    cyc = int(h * 0.27)
+    x0, y0 = cx - card // 2, cyc - card // 2
+    d.rounded_rectangle([x0, y0, x0 + card, y0 + card], radius=int(card * 0.30),
+                        fill=(255, 255, 255, 20), outline=(255, 255, 255, 40),
+                        width=max(2, card // 55))
+
+    # ── video-off 아이콘 (카드 중앙, 얇은 회백색 선) ─────────────────────────
+    isize = int(card * 0.44)
+    iox, ioy = cx - isize // 2, cyc - isize // 2
+    sx_ = sy_ = isize / 24.0
 
     def vp(x, y):
-        return (iox + x*sx_, ioy + y*sy_)
+        return (iox + x * sx_, ioy + y * sy_)
 
-    ic_col = (255, 255, 255, 220) if dark else (20, 15, 10, 210)
-    ilw = max(1, round(1.8 * (sx_+sy_)/2))
-    draw.rounded_rectangle([vp(1,5), vp(16,19)],
-                           radius=max(1, round(2*(sx_+sy_)/2)),
-                           outline=ic_col, width=ilw)
-    draw.line([vp(23,7), vp(16,12), vp(23,17), vp(23,7)], fill=ic_col, width=ilw)
-    draw.line([vp(1,1), vp(23,23)], fill=ic_col, width=ilw+1)
+    ic = (200, 206, 220, 150)
+    ilw = max(2, round(1.6 * sx_))
+    d.rounded_rectangle([vp(1, 5), vp(16, 19)], radius=max(1, round(2 * sx_)),
+                        outline=ic, width=ilw)
+    d.line([vp(23, 7), vp(16, 12), vp(23, 17), vp(23, 7)], fill=ic, width=ilw)
+    d.line([vp(1, 1), vp(23, 23)], fill=ic, width=ilw + 1)
 
-    # ── 이름 라벨 ─────────────────────────────────────────────────────────────
+    # ── 이름 (밝은 흰색, Bold) ───────────────────────────────────────────────
     display_name = (name or "").strip()
-    if display_name:
-        name_px = max(int(short * 0.07), 11)
-        name_col = (255, 255, 255, 210) if dark else (20, 15, 10, 190)
-        try:
-            nf = ImageFont.truetype(FONT_PATH, name_px)
-            draw.text((cx - draw.textlength(display_name, font=nf)/2,
-                       cy + rr + int(short * 0.03)),
-                      display_name, font=nf, fill=name_col)
-        except Exception:
-            pass
+    name_y = cyc + card // 2 + int(short * 0.08)
+    nf = font(max(int(short * 0.085), 14), bold=True)
+    if display_name and nf:
+        d.text((cx - d.textlength(display_name, font=nf) / 2, name_y),
+               display_name, font=nf, fill=(236, 239, 247, 255))
+        name_h = (nf.getbbox(display_name)[3] - nf.getbbox(display_name)[1])
+    else:
+        name_h = int(short * 0.085)
 
-    # ── 하단 텍스트 (그라디언트 없이 노이즈 위에 직접) ──────────────────────
-    l1_px = max(int(short * 0.055), 9)
-    l2_px = max(int(short * 0.045), 8)
-    l1_col = (255, 255, 255, 230) if dark else (20, 15, 10, 210)
-    l2_col = (200, 200, 200, 200) if dark else (40, 35, 30, 180)
-    l1_y = int(h * 0.80)
-    l2_y = int(h * 0.89)
-    try:
-        f1 = ImageFont.truetype(FONT_PATH, l1_px)
-        f2 = ImageFont.truetype(FONT_PATH, l2_px)
+    # ── 미참여 배지 (은은한 빨간 글로우 pill + 빨간 점) ──────────────────────
+    bf = font(max(int(short * 0.058), 11), bold=True)
+    pill_y = name_y + name_h + int(short * 0.10)
+    if bf:
+        label = "미참여"
+        tw = d.textlength(label, font=bf)
+        dot_r = max(2, int(short * 0.011))
+        pad_x = int(short * 0.05)
+        gap = int(short * 0.028)
+        pill_w = dot_r * 2 + gap + tw + pad_x * 2
+        pill_h = int(short * 0.10)
+        px0 = cx - pill_w / 2
+
+        # 은은한 빨간 외곽 글로우 (base 위에 먼저 합성)
+        glow_pill = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        gp = ImageDraw.Draw(glow_pill)
+        gm = int(short * 0.022)
+        gp.rounded_rectangle([px0 - gm, pill_y - gm, px0 + pill_w + gm, pill_y + pill_h + gm],
+                             radius=(pill_h + 2 * gm) // 2, fill=(226, 62, 78, 55))
+        glow_pill = glow_pill.filter(ImageFilter.GaussianBlur(int(short * 0.018)))
+        img = Image.alpha_composite(img, glow_pill)
+
+        # pill 본체 (반투명, overlay 레이어에)
+        d.rounded_rectangle([px0, pill_y, px0 + pill_w, pill_y + pill_h],
+                            radius=pill_h // 2, fill=(150, 44, 56, 210),
+                            outline=(220, 84, 98, 165), width=max(1, int(short * 0.004)))
+        dcy = pill_y + pill_h / 2
+        dcx = px0 + pad_x + dot_r
+        d.ellipse([dcx - dot_r, dcy - dot_r, dcx + dot_r, dcy + dot_r],
+                  fill=(242, 96, 108, 255))
+        bbox = bf.getbbox(label)
+        d.text((dcx + dot_r + gap, dcy - (bbox[3] - bbox[1]) / 2 - bbox[1]),
+               label, font=bf, fill=(246, 174, 182, 255))
+
+    # ── 안내문구 ──────────────────────────────────────────────────────────────
+    f1 = font(max(int(short * 0.046), 9))
+    if f1:
         t1 = "다음엔 꼭 함께해요"
-        t2 = "이번 미션은 참여하지 않았어요"
-        draw.text((cx - draw.textlength(t1, font=f1)/2, l1_y), t1, font=f1, fill=l1_col)
-        draw.text((cx - draw.textlength(t2, font=f2)/2, l2_y), t2, font=f2, fill=l2_col)
-    except Exception:
-        pass
+        d.text((cx - d.textlength(t1, font=f1) / 2, pill_y + int(short * 0.17)),
+               t1, font=f1, fill=(140, 147, 166, 210))
 
+    img = Image.alpha_composite(img, ov)
     img.convert("RGB").save(path)
 
 
@@ -159,11 +199,14 @@ def get_cells(rows_config):
     cells = []
     y = CELL_GAP
     for row in rows_config:
-        cols = row[0]
+        cols = row[0]                                   # 그리드 열 수 (셀 폭 계산 기준)
+        placed = row[1] if len(row) > 1 else cols       # 이 행에 실제 배치할 셀 개수
         total_gap_w = CELL_GAP * (cols + 1)
         cell_w = (CANVAS_W - total_gap_w) // cols
-        x = CELL_GAP
-        for _ in range(cols):
+        # 부분 행(placed < cols)은 좌우 가운데 정렬
+        placed_w = cell_w * placed + CELL_GAP * (placed - 1)
+        x = (CANVAS_W - placed_w) // 2 if placed < cols else CELL_GAP
+        for _ in range(placed):
             cells.append((cell_w, row_h, x, y))
             x += cell_w + CELL_GAP
         y += row_h + CELL_GAP
@@ -267,7 +310,9 @@ def lambda_handler(event, context):
                 rotation = video_rotations.get(i, 0)
                 is_portrait_horizontal = submissions[i].get("horizontal") and video_dims.get(i, (1, 0))[0] < video_dims.get(i, (0, 1))[1]
 
-                is_rear_camera = False
+                # 신규 FE는 녹화 시 캔버스로 회전·미러를 파일에 직접 굽는다(WYSIWYG).
+                # → 새 파일(가로 픽셀)은 필터 없이 그대로 사용.
+                # 아래 분기는 rotation 메타데이터가 있는 파일과 구버전 FE(세로 픽셀 + horizontal)용 레거시 보정.
                 if rotation == 90:
                     rotate_filter = "transpose=1,"
                 elif rotation in (270, -90):
@@ -275,24 +320,18 @@ def lambda_handler(event, context):
                 elif abs(rotation) == 180:
                     rotate_filter = "vflip,hflip,"
                 elif is_portrait_horizontal:
-                    # Chrome Android 가로 촬영: portrait 픽셀 (480×640) → CW 회전으로 정면 보정
-                    # 후면 카메라는 전면 대비 180도 뒤집혀 저장됨 → vflip,hflip(=180도 회전) 추가
+                    # 레거시: Chrome Android 가로 촬영 (세로 픽셀에 회전된 얼굴)
                     if submissions[i].get("facingMode") == "environment":
-                        rotate_filter = "transpose=1,vflip,hflip,"
-                        is_rear_camera = True
+                        rotate_filter = "transpose=1,vflip,hflip,"  # 후면: 회전 + 180도 보정
                     else:
-                        rotate_filter = "transpose=1,"
+                        rotate_filter = "transpose=1,hflip,"        # 전면: 회전 + 미러
                 else:
                     rotate_filter = ""
-
-                # hflip: 전면 카메라만 CSS scaleX(-1) 미러 프리뷰와 일치시키기 위해 좌우 반전
-                # 후면 카메라는 미러가 아니므로 hflip 생략
-                hflip_part = "" if is_rear_camera else "hflip,"
 
                 inputs += ["-stream_loop", "-1", "-i", local_videos[i]]
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
-                    f"{rotate_filter}{hflip_part}"
+                    f"{rotate_filter}"
                     f"scale={w}:{h}:force_original_aspect_ratio=increase,"
                     f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}]"
                 )
@@ -321,7 +360,8 @@ def lambda_handler(event, context):
             + inputs
             + ["-filter_complex", filter_complex, "-map", "[out]",
                "-t", str(duration), "-r", str(FPS), "-pix_fmt", "yuv420p",
-               "-c:v", "libx264", "-preset", "veryfast", "-movflags", "+faststart",
+               "-c:v", "libx264", "-preset", "faster", "-crf", "20",
+               "-movflags", "+faststart",
                collage_path]
         )
 
@@ -340,8 +380,8 @@ def lambda_handler(event, context):
             ["/opt/ffmpeg", "-y", "-nostats", "-loglevel", "error",
              "-ss", str(seek), "-i", collage_path,
              "-vframes", "1", "-q:v", "2",
-             "-vf", f"scale=960:540:force_original_aspect_ratio=decrease,"
-                    f"pad=960:540:(ow-iw)/2:(oh-ih)/2:black",
+             "-vf", f"scale=1280:720:force_original_aspect_ratio=decrease,"
+                    f"pad=1280:720:(ow-iw)/2:(oh-ih)/2:black",
              thumb_path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )

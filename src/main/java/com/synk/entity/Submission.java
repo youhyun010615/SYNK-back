@@ -44,6 +44,12 @@ public class Submission {
     @Column(name = "facing_mode", length = 20)
     private String facingMode;
 
+    @Column(name = "video_width")
+    private Integer videoWidth;
+
+    @Column(name = "video_height")
+    private Integer videoHeight;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SubmissionStatus status;
@@ -53,21 +59,25 @@ public class Submission {
     private LocalDateTime submittedAt;
 
     @Builder
-    public Submission(User user, Room room, Mission mission, String videoUrl, boolean horizontal, String facingMode, SubmissionStatus status) {
+    public Submission(User user, Room room, Mission mission, String videoUrl, boolean horizontal, String facingMode, Integer videoWidth, Integer videoHeight, SubmissionStatus status) {
         this.user = user;
         this.room = room;
         this.mission = mission;
         this.videoUrl = videoUrl;
         this.horizontal = horizontal;
         this.facingMode = facingMode;
+        this.videoWidth = videoWidth;
+        this.videoHeight = videoHeight;
         this.status = status;
         this.submittedAt = LocalDateTime.now();
     }
 
-    public void updateVideo(String newVideoUrl, boolean horizontal, String facingMode) {
+    public void updateVideo(String newVideoUrl, boolean horizontal, String facingMode, Integer videoWidth, Integer videoHeight) {
         this.videoUrl = newVideoUrl;
         this.horizontal = horizontal;
         this.facingMode = facingMode;
+        this.videoWidth = videoWidth;
+        this.videoHeight = videoHeight;
         this.submittedAt = LocalDateTime.now();
     }
 

@@ -66,7 +66,7 @@ public class SubmissionService {
         // 재촬영: 이미 제출한 경우 videoUrl만 업데이트
         Submission submission = submissionRepository.findByMissionAndUser(mission, user)
                 .map(existing -> {
-                    existing.updateVideo(request.getVideoUrl(), request.isHorizontal(), request.getFacingMode());
+                    existing.updateVideo(request.getVideoUrl(), request.isHorizontal(), request.getFacingMode(), request.getWidth(), request.getHeight());
                     return existing;
                 })
                 .orElseGet(() -> submissionRepository.save(Submission.builder()
@@ -76,6 +76,8 @@ public class SubmissionService {
                         .videoUrl(request.getVideoUrl())
                         .horizontal(request.isHorizontal())
                         .facingMode(request.getFacingMode())
+                        .videoWidth(request.getWidth())
+                        .videoHeight(request.getHeight())
                         .status(Submission.SubmissionStatus.SUBMITTED)
                         .build()));
 

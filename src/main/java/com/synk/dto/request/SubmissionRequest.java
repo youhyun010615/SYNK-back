@@ -12,5 +12,7 @@ public class SubmissionRequest {
     private String videoUrl;
     private boolean horizontal; // 폰 가로 녹화 여부
     private String facingMode; // "user" (전면) | "environment" (후면)
+    private Integer width;  // 녹화 파일 실제 픽셀 가로
+    private Integer height; // 녹화 파일 실제 픽셀 세로
 }
 
