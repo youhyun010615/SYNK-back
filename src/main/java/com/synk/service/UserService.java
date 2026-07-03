@@ -40,9 +40,9 @@ public class UserService {
     public void updateNotification(UpdateNotificationRequest request) {
         User user = getUser();
         user.updateAlertSettings(
-                request.isMissionNotification(),
-                request.isResultNotification(),
-                request.isHighlightNotification()
+                request.getMissionNotification() != null ? request.getMissionNotification() : user.isMissionAlert(),
+                request.getResultNotification() != null ? request.getResultNotification() : user.isResultAlert(),
+                request.getHighlightNotification() != null ? request.getHighlightNotification() : user.isHighlightAlert()
         );
     }
 
