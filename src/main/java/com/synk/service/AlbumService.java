@@ -2,6 +2,8 @@
 
 package com.synk.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.synk.dto.request.SynklogCallbackRequest;
 import com.synk.dto.response.AlbumResponse;
 import com.synk.dto.response.SynklogResponse;
 import com.synk.entity.*;
@@ -10,15 +12,23 @@ import com.synk.global.exception.ErrorCode;
 import com.synk.repository.*;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvocationType;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AlbumService {
@@ -32,6 +42,17 @@ public class AlbumService {
     private final SynklogRepository synklogRepository;
     private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
+    private final LambdaClient lambdaClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${aws.lambda.synklog-function-name}")
+    private String synklogLambdaFunctionName;
+
+    @Value("${collage.callback.secret}")
+    private String callbackSecret;
+
+    @Value("${synklog.callback-url}")
+    private String synklogCallbackUrl;
 
     @Transactional(readOnly = true)
     public List<AlbumResponse> getAlbums(Long roomId) {
@@ -95,8 +116,11 @@ public class AlbumService {
         Room room = getRoom(roomId);
         validateMember(user, room);
 
-        if (synklogRepository.findByRoomAndDate(room, date).isPresent()) {
-            throw new CustomException(ErrorCode.SYNKLOG_ALREADY_EXISTS);
+        // 이미 존재하면 기존 synklog 반환 (FE 중복 요청 허용)
+        Synklog existing = synklogRepository.findByRoomAndDate(room, date).orElse(null);
+        if (existing != null) {
+            List<Mission> dayMissions = missionRepository.findByRoomAndDate(room, date);
+            return SynklogResponse.from(existing, dayMissions);
         }
 
         Synklog synklog = synklogRepository.save(Synklog.builder()
@@ -104,7 +128,66 @@ public class AlbumService {
                         .date(date)
                         .build());
 
+        invokeSynklogLambda(synklog, room, date);
+
         return SynklogResponse.from(synklog, null);
+    }
+
+    private void invokeSynklogLambda(Synklog synklog, Room room, LocalDate date) {
+        try {
+            List<Collage> collages = collageRepository.findByRoomAndMission_Date(room, date);
+            List<String> videoUrls = collages.stream()
+                    .filter(c -> c.getStatus() == Collage.CollageStatus.COMPLETED && c.getCollageVideoUrl() != null)
+                    .sorted(java.util.Comparator.comparing(Collage::getId))
+                    .map(Collage::getCollageVideoUrl)
+                    .toList();
+
+            if (videoUrls.isEmpty()) {
+                log.warn("SYNKLOG Lambda 호출 취소 — 완료된 collage 없음: synklogId={}", synklog.getId());
+                synklog.fail();
+                return;
+            }
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("synklogId", synklog.getId());
+            payload.put("videoUrls", videoUrls);
+            payload.put("callbackUrl", synklogCallbackUrl);
+            payload.put("callbackSecret", callbackSecret);
+
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            InvokeRequest request = InvokeRequest.builder()
+                    .functionName(synklogLambdaFunctionName)
+                    .invocationType(InvocationType.EVENT)
+                    .payload(SdkBytes.fromUtf8String(payloadJson))
+                    .build();
+
+            lambdaClient.invoke(request);
+            log.info("SYNKLOG Lambda 호출: synklogId={}, videos={}", synklog.getId(), videoUrls.size());
+        } catch (Exception e) {
+            log.error("SYNKLOG Lambda 호출 실패: synklogId={}", synklog.getId(), e);
+            synklog.fail();
+        }
+    }
+
+    @Transactional
+    public SynklogResponse handleSynklogCallback(String receivedSecret, SynklogCallbackRequest request) {
+        if (!callbackSecret.equals(receivedSecret)) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+
+        Synklog synklog = synklogRepository.findById(request.getSynklogId())
+                .orElseThrow(() -> new CustomException(ErrorCode.SYNKLOG_NOT_FOUND));
+
+        if (request.isSuccess()) {
+            synklog.complete(request.getSynklogVideoUrl(), request.getThumbnailUrl());
+            log.info("SYNKLOG 완료: synklogId={}, url={}", synklog.getId(), request.getSynklogVideoUrl());
+        } else {
+            synklog.fail();
+            log.warn("SYNKLOG 실패: synklogId={}, error={}", synklog.getId(), request.getError());
+        }
+
+        List<Mission> dayMissions = missionRepository.findByRoomAndDate(synklog.getRoom(), synklog.getDate());
+        return SynklogResponse.from(synklog, dayMissions);
     }
 
     @Transactional(readOnly = true)

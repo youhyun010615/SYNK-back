@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/collages/callback",
+                                "/api/synklogs/callback",
                                 "/debug/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",

@@ -1,5 +1,6 @@
 package com.synk.controller;
 
+import com.synk.dto.request.SynklogCallbackRequest;
 import com.synk.dto.response.AlbumResponse;
 import com.synk.dto.response.SynklogResponse;
 import com.synk.global.response.ApiResponse;
@@ -50,3 +51,5 @@ public class AlbumController {
         return ResponseEntity.ok(ApiResponse.success(response, "SYNKLOG 조회 성공"));
     }
 }
+
+
