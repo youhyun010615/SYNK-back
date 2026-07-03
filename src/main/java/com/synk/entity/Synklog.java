@@ -64,6 +64,13 @@ public class Synklog {
         this.completedAt = LocalDateTime.now();
     }
 
+    public void reprocess() {
+        this.status = SynklogStatus.PROCESSING;
+        this.synklogVideoUrl = null;
+        this.thumbnail = null;
+        this.completedAt = null;
+    }
+
     public void fail() {
         this.status = SynklogStatus.FAILED;
         this.completedAt = LocalDateTime.now();

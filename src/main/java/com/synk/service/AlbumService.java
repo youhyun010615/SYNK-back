@@ -111,20 +111,23 @@ public class AlbumService {
     }
 
     @Transactional
-    public SynklogResponse createSynklog(Long roomId, LocalDate date) {
+    public SynklogResponse createSynklog(Long roomId, LocalDate date, List<Long> missionIds) {
         User user = getUser();
         Room room = getRoom(roomId);
         validateMember(user, room);
 
-        // 이미 완료된 synklog → 그대로 반환
+        boolean hasSelection = missionIds != null && !missionIds.isEmpty();
+
         Synklog existing = synklogRepository.findByRoomAndDate(room, date).orElse(null);
-        if (existing != null && existing.getStatus() == Synklog.SynklogStatus.COMPLETED) {
+        // 선택 없이 재요청 + 이미 완료 → 그대로 반환
+        if (existing != null && existing.getStatus() == Synklog.SynklogStatus.COMPLETED && !hasSelection) {
             List<Mission> dayMissions = missionRepository.findByRoomAndDate(room, date);
             return SynklogResponse.from(existing, dayMissions);
         }
-        // PROCESSING(스케줄러 자동 생성) or FAILED → Lambda 재호출
+        // 선택이 있거나 PROCESSING/FAILED → 재생성
         if (existing != null) {
-            invokeSynklogLambda(existing, room, date);
+            existing.reprocess();
+            invokeSynklogLambda(existing, room, date, missionIds);
             return SynklogResponse.from(existing, null);
         }
 
@@ -133,29 +136,36 @@ public class AlbumService {
                         .date(date)
                         .build());
 
-        invokeSynklogLambda(synklog, room, date);
+        invokeSynklogLambda(synklog, room, date, missionIds);
 
         return SynklogResponse.from(synklog, null);
     }
 
-    private void invokeSynklogLambda(Synklog synklog, Room room, LocalDate date) {
+    private void invokeSynklogLambda(Synklog synklog, Room room, LocalDate date, List<Long> missionIds) {
         try {
-            List<Collage> collages = collageRepository.findByRoomAndMission_Date(room, date);
-            List<String> videoUrls = collages.stream()
+            List<Collage> collages = collageRepository.findByRoomAndMission_Date(room, date).stream()
                     .filter(c -> c.getStatus() == Collage.CollageStatus.COMPLETED && c.getCollageVideoUrl() != null)
+                    .filter(c -> missionIds == null || missionIds.isEmpty()
+                            || missionIds.contains(c.getMission().getId()))
                     .sorted(java.util.Comparator.comparing(Collage::getId))
-                    .map(Collage::getCollageVideoUrl)
                     .toList();
 
-            if (videoUrls.isEmpty()) {
+            if (collages.isEmpty()) {
                 log.warn("SYNKLOG Lambda 호출 취소 — 완료된 collage 없음: synklogId={}", synklog.getId());
                 synklog.fail();
                 return;
             }
 
+            List<Map<String, Object>> videos = collages.stream()
+                    .<Map<String, Object>>map(c -> Map.of(
+                            "url", c.getCollageVideoUrl(),
+                            "title", c.getMission().getMissionTemplate().getTitle()))
+                    .toList();
+
             Map<String, Object> payload = new HashMap<>();
             payload.put("synklogId", synklog.getId());
-            payload.put("videoUrls", videoUrls);
+            payload.put("videos", videos);
+            payload.put("date", date.toString());
             payload.put("callbackUrl", synklogCallbackUrl);
             payload.put("callbackSecret", callbackSecret);
 
@@ -167,7 +177,7 @@ public class AlbumService {
                     .build();
 
             lambdaClient.invoke(request);
-            log.info("SYNKLOG Lambda 호출: synklogId={}, videos={}", synklog.getId(), videoUrls.size());
+            log.info("SYNKLOG Lambda 호출: synklogId={}, videos={}", synklog.getId(), videos.size());
         } catch (Exception e) {
             log.error("SYNKLOG Lambda 호출 실패: synklogId={}", synklog.getId(), e);
             synklog.fail();

@@ -1,6 +1,7 @@
 package com.synk.controller;
 
 import com.synk.dto.request.SynklogCallbackRequest;
+import com.synk.dto.request.SynklogCreateRequest;
 import com.synk.dto.response.AlbumResponse;
 import com.synk.dto.response.SynklogResponse;
 import com.synk.global.response.ApiResponse;
@@ -38,8 +39,10 @@ public class AlbumController {
     @PostMapping("/{date}/synklog")
     public ResponseEntity<ApiResponse<SynklogResponse>>
     createSynklog(@PathVariable Long roomId,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        SynklogResponse response = albumService.createSynklog(roomId, date);
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestBody(required = false) SynklogCreateRequest request) {
+        List<Long> missionIds = request != null ? request.getMissionIds() : null;
+        SynklogResponse response = albumService.createSynklog(roomId, date, missionIds);
         return ResponseEntity.ok(ApiResponse.success(response, "SYNKLOG 생성 요청 완료"));
     }
 
