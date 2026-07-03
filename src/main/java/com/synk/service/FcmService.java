@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -44,20 +45,43 @@ public class FcmService {
         }
     }
 
+    // data 페이로드 포함 전송 (포그라운드에서도 FE가 직접 처리할 수 있도록)
+    public void sendDataMessage(User user, com.synk.entity.Notification.NotificationType type,
+                                String title, String body, Long relatedId, Map<String, String> data) {
+        notificationRepository.save(com.synk.entity.Notification.builder()
+                .user(user)
+                .type(type)
+                .title(title)
+                .content(body)
+                .relatedId(relatedId)
+                .build());
+
+        List<UserFcmToken> tokens = userFcmTokenRepository.findByUser(user);
+        if (tokens.isEmpty()) {
+            log.warn("FCM 토큰 없음 — push 미발송: userId={}, type={}", user.getId(), type);
+        }
+        for (UserFcmToken userFcmToken : tokens) {
+            sendToTokenWithData(user.getId(), userFcmToken.getToken(), title, body, data);
+        }
+    }
+
     private void sendToToken(Long userId, String token, String title, String body) {
+        sendToTokenWithData(userId, token, title, body, Map.of());
+    }
+
+    private void sendToTokenWithData(Long userId, String token, String title, String body, Map<String, String> data) {
         try {
-            Message message = Message.builder()
+            Message.Builder builder = Message.builder()
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
                             .build())
-                    .setToken(token)
-                    .build();
-            FirebaseMessaging.getInstance().send(message);
+                    .putAllData(data)
+                    .setToken(token);
+            FirebaseMessaging.getInstance().send(builder.build());
             log.info("FCM 전송 성공: userId={}", userId);
         } catch (FirebaseMessagingException e) {
             log.warn("FCM 전송 실패: userId={}, error={}", userId, e.getMessage());
-            // 더 이상 유효하지 않은(기기에서 삭제/만료된) 토큰은 정리
             if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
                 userFcmTokenRepository.deleteByToken(token);
             }

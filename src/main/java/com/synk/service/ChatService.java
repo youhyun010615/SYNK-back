@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +31,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final FcmService fcmService;
 
     @Transactional
     public ChatMessageResponse getChats(Long roomId) {
@@ -98,8 +100,25 @@ public class ChatService {
                 .build();
 
         // REST로 보낸 메시지도 WebSocket으로 방 전체에 실시간 브로드캐스트
-        // (STOMP handleMessage의 @SendTo("/topic/rooms/{roomId}")와 동일한 토픽)
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId, response);
+
+        // 다른 멤버에게 FCM 푸시 알림 (포그라운드 대응: data 페이로드 포함)
+        String truncatedContent = chat.getContent() != null && chat.getContent().length() > 50
+                ? chat.getContent().substring(0, 50) + "…"
+                : chat.getContent();
+        String fcmTitle = room.getName();
+        String fcmBody = user.getName() + ": " + truncatedContent;
+        Map<String, String> data = Map.of("type", "CHAT", "roomId", String.valueOf(roomId));
+
+        roomMemberRepository.findByRoom(room).stream()
+                .filter(m -> !m.getUser().getId().equals(user.getId()))
+                .forEach(m -> fcmService.sendDataMessage(
+                        m.getUser(),
+                        Notification.NotificationType.CHAT,
+                        fcmTitle, fcmBody,
+                        chat.getId(),
+                        data
+                ));
 
         return response;
     }

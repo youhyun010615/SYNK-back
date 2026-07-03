@@ -59,7 +59,7 @@ public class Notification {
 
     public enum NotificationType {
         MISSION_START, MISSION_COMPLETE,
-        SYNKLOG_CREATED, MEMBER_JOIN
+        SYNKLOG_CREATED, MEMBER_JOIN, CHAT
     }
 
     public void read() {
