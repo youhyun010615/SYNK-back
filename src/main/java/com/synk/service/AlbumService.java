@@ -116,11 +116,16 @@ public class AlbumService {
         Room room = getRoom(roomId);
         validateMember(user, room);
 
-        // 이미 존재하면 기존 synklog 반환 (FE 중복 요청 허용)
+        // 이미 완료된 synklog → 그대로 반환
         Synklog existing = synklogRepository.findByRoomAndDate(room, date).orElse(null);
-        if (existing != null) {
+        if (existing != null && existing.getStatus() == Synklog.SynklogStatus.COMPLETED) {
             List<Mission> dayMissions = missionRepository.findByRoomAndDate(room, date);
             return SynklogResponse.from(existing, dayMissions);
+        }
+        // PROCESSING(스케줄러 자동 생성) or FAILED → Lambda 재호출
+        if (existing != null) {
+            invokeSynklogLambda(existing, room, date);
+            return SynklogResponse.from(existing, null);
         }
 
         Synklog synklog = synklogRepository.save(Synklog.builder()
