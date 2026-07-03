@@ -116,15 +116,7 @@ public class AlbumService {
         Room room = getRoom(roomId);
         validateMember(user, room);
 
-        boolean hasSelection = missionIds != null && !missionIds.isEmpty();
-
         Synklog existing = synklogRepository.findByRoomAndDate(room, date).orElse(null);
-        // 선택 없이 재요청 + 이미 완료 → 그대로 반환
-        if (existing != null && existing.getStatus() == Synklog.SynklogStatus.COMPLETED && !hasSelection) {
-            List<Mission> dayMissions = missionRepository.findByRoomAndDate(room, date);
-            return SynklogResponse.from(existing, dayMissions);
-        }
-        // 선택이 있거나 PROCESSING/FAILED → 재생성
         if (existing != null) {
             existing.reprocess();
             invokeSynklogLambda(existing, room, date, missionIds);
