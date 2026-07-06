@@ -64,6 +64,16 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success(response, "방 설정 수정 완료"));
     }
 
+    // 주별 참여율 조회. weekOffset 0=이번주, 1=지난주 ...
+    @GetMapping("/{roomId}/participation")
+    public ResponseEntity<ApiResponse<com.synk.dto.response.ParticipationResponse>> getParticipation(
+            @PathVariable Long roomId,
+            @RequestParam(name = "weekOffset", defaultValue = "0") int weekOffset) {
+        com.synk.dto.response.ParticipationResponse response =
+                roomService.getParticipation(roomId, weekOffset);
+        return ResponseEntity.ok(ApiResponse.success(response, "주별 참여율 조회 성공"));
+    }
+
     // 방별 채팅 알림 on/off (종 아이콘). body: {"enabled": true/false}
     @PatchMapping("/{roomId}/chat-alert")
     public ResponseEntity<ApiResponse<Boolean>> updateChatAlert(

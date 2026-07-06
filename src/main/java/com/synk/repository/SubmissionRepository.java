@@ -18,6 +18,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     List<Submission> findByMission(Mission mission);
 
+    List<Submission> findByMissionIn(List<Mission> missions);
+
     Optional<Submission> findByMissionAndUser(Mission mission, User user);
 
     boolean existsByMissionAndUser(Mission mission, User user);

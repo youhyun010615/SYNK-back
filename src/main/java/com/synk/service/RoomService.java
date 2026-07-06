@@ -201,6 +201,83 @@ public class RoomService {
         return enabled;
     }
 
+    // 주별 참여율 조회 (월~일 기준). weekOffset 0=이번주, 1=지난주 ...
+    @Transactional(readOnly = true)
+    public com.synk.dto.response.ParticipationResponse getParticipation(Long roomId, int weekOffset) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        validateMember(user, room);
+
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(java.time.DayOfWeek.MONDAY).minusWeeks(weekOffset);
+        LocalDate sunday = monday.plusDays(6);
+
+        List<RoomMember> members = roomMemberRepository.findByRoom(room);
+
+        // 발송된 미션 = 실제로 시작된 미션(PENDING 제외)
+        List<Mission> firedMissions = missionRepository.findByRoomAndDateBetween(room, monday, sunday).stream()
+                .filter(m -> m.getStatus() != Mission.MissionStatus.PENDING)
+                .toList();
+        int missionCount = firedMissions.size();
+
+        if (missionCount == 0) {
+            return com.synk.dto.response.ParticipationResponse.builder()
+                    .averageRate(0)
+                    .memberCount(members.size())
+                    .missionCount(0)
+                    .startDate(monday.toString())
+                    .endDate(sunday.toString())
+                    .members(java.util.Collections.emptyList())
+                    .build();
+        }
+
+        // 유저별 완료(SUBMITTED) 미션 수 집계
+        java.util.Map<Long, Long> completedByUser = submissionRepository.findByMissionIn(firedMissions).stream()
+                .filter(s -> s.getStatus() == com.synk.entity.Submission.SubmissionStatus.SUBMITTED)
+                .collect(java.util.stream.Collectors.groupingBy(
+                        s -> s.getUser().getId(), java.util.stream.Collectors.counting()));
+
+        List<com.synk.dto.response.ParticipationResponse.MemberParticipation> memberList = members.stream()
+                .map(rm -> {
+                    int completed = completedByUser.getOrDefault(rm.getUser().getId(), 0L).intValue();
+                    int rate = (int) Math.round(completed * 100.0 / missionCount);
+                    return com.synk.dto.response.ParticipationResponse.MemberParticipation.builder()
+                            .userId(rm.getUser().getId())
+                            .name(rm.getUser().getName())
+                            .profileImage(rm.getUser().getProfileImage())
+                            .completed(completed)
+                            .total(missionCount)
+                            .rate(rate)
+                            .build();
+                })
+                .sorted(java.util.Comparator.comparingInt(
+                        com.synk.dto.response.ParticipationResponse.MemberParticipation::getRate).reversed())
+                .toList();
+
+        // 순위 부여 (참여율 동률이면 같은 등수는 아니고 순서대로 1,2,3... 부여)
+        List<com.synk.dto.response.ParticipationResponse.MemberParticipation> ranked = new java.util.ArrayList<>();
+        int rank = 1;
+        for (com.synk.dto.response.ParticipationResponse.MemberParticipation mp : memberList) {
+            ranked.add(com.synk.dto.response.ParticipationResponse.MemberParticipation.builder()
+                    .userId(mp.getUserId()).name(mp.getName()).profileImage(mp.getProfileImage())
+                    .completed(mp.getCompleted()).total(mp.getTotal()).rate(mp.getRate())
+                    .rank(rank++).build());
+        }
+
+        int averageRate = ranked.isEmpty() ? 0
+                : (int) Math.round(ranked.stream().mapToInt(
+                        com.synk.dto.response.ParticipationResponse.MemberParticipation::getRate).average().orElse(0));
+
+        return com.synk.dto.response.ParticipationResponse.builder()
+                .averageRate(averageRate)
+                .memberCount(members.size())
+                .missionCount(missionCount)
+                .startDate(monday.toString())
+                .endDate(sunday.toString())
+                .members(ranked)
+                .build();
+    }
+
     @Transactional
     public void leaveRoom(Long roomId) {
         User user = getUser();
