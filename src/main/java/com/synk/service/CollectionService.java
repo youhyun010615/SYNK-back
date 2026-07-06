@@ -68,15 +68,9 @@ public class CollectionService {
                 })
                 .toList();
 
-        // 수집률: 튜토리얼 제외한 일반 미션 기준
-        java.util.Set<Long> nonTutorialIds = allTemplates.stream()
-                .filter(t -> !"튜토리얼".equals(t.getDescription()))
-                .map(MissionTemplate::getId)
-                .collect(java.util.stream.Collectors.toSet());
-        int totalCount = nonTutorialIds.size();
-        int completedCount = (int) recordsByTemplateId.keySet().stream()
-                .filter(nonTutorialIds::contains)
-                .count();
+        // 수집률: 튜토리얼 포함 전체 미션 기준
+        int totalCount = allTemplates.size();
+        int completedCount = recordsByTemplateId.size();
         int completionRate = totalCount > 0 ? (int) ((double) completedCount / totalCount * 100) : 0;
 
         return CollectionResponse.builder()
