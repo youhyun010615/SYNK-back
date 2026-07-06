@@ -30,7 +30,7 @@ public class CollectionService {
     private final MissionTemplateRepository missionTemplateRepository;
     private final UserRepository userRepository;
 
-    private static final int TOTAL_MISSION_COUNT = 90;
+    private static final int TOTAL_MISSION_COUNT = 67;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     @Transactional(readOnly = true)

@@ -152,6 +152,6 @@ public class DataInitializer implements ApplicationRunner {
                     .description("카메라 앞, 있는 그대로!")
                     .build());
         }
-        log.info("mission_templates 90개 초기화 완료");
+        log.info("mission_templates 67개 초기화 완료");
     }
 }
