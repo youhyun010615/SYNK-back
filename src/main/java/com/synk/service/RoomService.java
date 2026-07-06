@@ -488,34 +488,31 @@ public class RoomService {
     public Long sendTestNotification(Long roomId) {
         Room room = getRoom(roomId);
 
-        // 기존 테스트 미션(ACTIVE) 있으면 재사용
-        List<Mission> existing = missionRepository.findByRoomAndStatus(room, Mission.MissionStatus.ACTIVE);
-        Mission mission;
-        if (!existing.isEmpty()) {
-            mission = existing.get(0);
-        } else {
-            MissionTemplate template = missionTemplateRepository.findAll().get(0);
+        // 매 테스트마다 완전 랜덤 미션을 새로 생성 (튜토리얼 제외)
+        List<MissionTemplate> pool = missionTemplateRepository.findByDescriptionNot("튜토리얼");
+        if (pool.isEmpty()) throw new CustomException(ErrorCode.MISSION_NOT_FOUND);
+        MissionTemplate template = pool.get(new java.util.Random().nextInt(pool.size()));
 
-            // 현재 KST 시간에 맞는 슬롯을 찾거나 새로 생성 (deadline = 지금 + 5분 보장)
-            LocalTime nowKst = LocalTime.now(ZoneId.of("Asia/Seoul")).withSecond(0).withNano(0);
-            MissionTimeSlot slot = missionTimeSlotRepository.findBySlotTime(nowKst)
-                    .orElseGet(() -> missionTimeSlotRepository.save(
-                            MissionTimeSlot.builder().slotTime(nowKst).build()));
+        // 현재 KST 시간에 맞는 슬롯을 찾거나 새로 생성 (deadline = 지금 + 5분 보장)
+        LocalTime nowKst = LocalTime.now(ZoneId.of("Asia/Seoul")).withSecond(0).withNano(0);
+        MissionTimeSlot slot = missionTimeSlotRepository.findBySlotTime(nowKst)
+                .orElseGet(() -> missionTimeSlotRepository.save(
+                        MissionTimeSlot.builder().slotTime(nowKst).build()));
 
-            // 같은 날 같은 방 같은 슬롯 unique 제약 충돌 방지: 날짜를 내일로
-            LocalDate missionDate = missionRepository.existsByRoomAndDateAndTimeSlot(room, LocalDate.now(), slot)
-                    ? LocalDate.now().plusDays(1)
-                    : LocalDate.now();
-
-            mission = missionRepository.save(Mission.builder()
-                    .room(room)
-                    .missionTemplate(template)
-                    .timeSlot(slot)
-                    .date(missionDate)
-                    .build());
-            mission.activate();
-            missionRepository.save(mission);
+        // (room, date, slot) unique 제약 충돌 방지: 비어있는 날짜를 찾을 때까지 하루씩 뒤로
+        LocalDate missionDate = LocalDate.now();
+        while (missionRepository.existsByRoomAndDateAndTimeSlot(room, missionDate, slot)) {
+            missionDate = missionDate.plusDays(1);
         }
+
+        Mission mission = missionRepository.save(Mission.builder()
+                .room(room)
+                .missionTemplate(template)
+                .timeSlot(slot)
+                .date(missionDate)
+                .build());
+        mission.activate();
+        missionRepository.save(mission);
 
         List<RoomMember> members = roomMemberRepository.findByRoom(room);
         for (RoomMember member : members) {
