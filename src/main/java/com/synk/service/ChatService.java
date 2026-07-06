@@ -12,6 +12,7 @@ import com.synk.global.exception.ErrorCode;
 import com.synk.repository.*;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -110,15 +112,20 @@ public class ChatService {
         String fcmBody = user.getName() + ": " + truncatedContent;
         Map<String, String> data = Map.of("type", "CHAT", "roomId", String.valueOf(roomId));
 
-        roomMemberRepository.findByRoom(room).stream()
-                .filter(m -> !m.getUser().getId().equals(user.getId()))
-                .forEach(m -> fcmService.sendDataMessage(
-                        m.getUser(),
-                        Notification.NotificationType.CHAT,
-                        fcmTitle, fcmBody,
-                        chat.getId(),
-                        data
-                ));
+        // FCM 푸시 실패가 채팅 전송(트랜잭션)을 롤백시키지 않도록 방어
+        try {
+            roomMemberRepository.findByRoom(room).stream()
+                    .filter(m -> !m.getUser().getId().equals(user.getId()))
+                    .forEach(m -> fcmService.sendDataMessage(
+                            m.getUser(),
+                            Notification.NotificationType.CHAT,
+                            fcmTitle, fcmBody,
+                            chat.getId(),
+                            data
+                    ));
+        } catch (Exception e) {
+            log.warn("채팅 FCM 푸시 실패(채팅 전송은 정상): messageId={}, error={}", chat.getId(), e.getMessage());
+        }
 
         return response;
     }
@@ -161,15 +168,20 @@ public class ChatService {
         String fcmBody = user.getName() + ": " + truncatedContent;
         Map<String, String> data = Map.of("type", "CHAT", "roomId", String.valueOf(roomId));
 
-        roomMemberRepository.findByRoom(room).stream()
-                .filter(m -> !m.getUser().getId().equals(user.getId()))
-                .forEach(m -> fcmService.sendDataMessage(
-                        m.getUser(),
-                        Notification.NotificationType.CHAT,
-                        fcmTitle, fcmBody,
-                        chat.getId(),
-                        data
-                ));
+        // FCM 푸시 실패가 채팅 전송(트랜잭션)을 롤백시키지 않도록 방어
+        try {
+            roomMemberRepository.findByRoom(room).stream()
+                    .filter(m -> !m.getUser().getId().equals(user.getId()))
+                    .forEach(m -> fcmService.sendDataMessage(
+                            m.getUser(),
+                            Notification.NotificationType.CHAT,
+                            fcmTitle, fcmBody,
+                            chat.getId(),
+                            data
+                    ));
+        } catch (Exception e) {
+            log.warn("채팅 FCM 푸시 실패(채팅 전송은 정상): messageId={}, error={}", chat.getId(), e.getMessage());
+        }
 
         return response;
     }

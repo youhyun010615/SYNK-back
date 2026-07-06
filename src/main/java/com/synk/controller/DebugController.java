@@ -101,7 +101,7 @@ public class DebugController {
             @RequestBody java.util.Map<String, String> body) {
         String token = body.get("fcmToken");
         if (token == null || token.isBlank()) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("fcmToken 필요"));
+            return ResponseEntity.badRequest().body(ApiResponse.failure("fcmToken 필요"));
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
