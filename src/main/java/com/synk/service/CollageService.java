@@ -160,12 +160,16 @@ public class CollageService {
                 if (memberUser.isResultAlert()) {
                     log.info("MISSION_COMPLETE 발송 대상: userId={}, name={}, resultAlert=true",
                             memberUser.getId(), memberUser.getName());
-                    fcmService.sendAndSave(
+                    fcmService.sendDataMessage(
                             memberUser,
                             Notification.NotificationType.MISSION_COMPLETE,
                             "✨ 콜라주 완성!",
                             "📽️ " + mission.getRoom().getName() + " · 다들 어떻게 찍었는지 확인해봐요!",
-                            mission.getId()
+                            mission.getId(),
+                            java.util.Map.of(
+                                    "type", "MISSION_COMPLETE",
+                                    "roomId", String.valueOf(mission.getRoom().getId())
+                            )
                     );
                 } else {
                     log.info("MISSION_COMPLETE 스킵(resultAlert=false): userId={}, name={}",
