@@ -1,5 +1,8 @@
 package com.synk.service;
 
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -75,6 +78,15 @@ public class FcmService {
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
+                            .build())
+                    .setApnsConfig(ApnsConfig.builder()
+                            .setAps(Aps.builder()
+                                    .setAlert(ApsAlert.builder()
+                                            .setTitle(title)
+                                            .setBody(body)
+                                            .build())
+                                    .setSound("default")
+                                    .build())
                             .build())
                     .putAllData(data)
                     .setToken(token);

@@ -143,7 +143,7 @@ public class ChatService {
 
         member.markRead(chat.getId());
 
-        return ChatSocketResponse.builder()
+        ChatSocketResponse response = ChatSocketResponse.builder()
                 .messageId(chat.getId())
                 .userId(user.getId())
                 .userName(user.getName())
@@ -152,6 +152,26 @@ public class ChatService {
                 .content(chat.getContent())
                 .createdAt(chat.getCreatedAt())
                 .build();
+
+        // WebSocket 경로도 동일하게 FCM 푸시 발송
+        String truncatedContent = chat.getContent() != null && chat.getContent().length() > 50
+                ? chat.getContent().substring(0, 50) + "…"
+                : chat.getContent();
+        String fcmTitle = room.getName();
+        String fcmBody = user.getName() + ": " + truncatedContent;
+        Map<String, String> data = Map.of("type", "CHAT", "roomId", String.valueOf(roomId));
+
+        roomMemberRepository.findByRoom(room).stream()
+                .filter(m -> !m.getUser().getId().equals(user.getId()))
+                .forEach(m -> fcmService.sendDataMessage(
+                        m.getUser(),
+                        Notification.NotificationType.CHAT,
+                        fcmTitle, fcmBody,
+                        chat.getId(),
+                        data
+                ));
+
+        return response;
     }
 
     @Transactional
