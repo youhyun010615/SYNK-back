@@ -148,11 +148,38 @@ public class AlbumService {
                 return;
             }
 
-            List<Map<String, Object>> videos = collages.stream()
-                    .<Map<String, Object>>map(c -> Map.of(
-                            "url", c.getCollageVideoUrl(),
-                            "title", c.getMission().getMissionTemplate().getTitle()))
-                    .toList();
+            List<RoomMember> roomMembers = roomMemberRepository.findByRoom(room);
+
+            List<Map<String, Object>> videos = new java.util.ArrayList<>();
+            for (int i = 0; i < collages.size(); i++) {
+                Collage c = collages.get(i);
+                Mission mission = c.getMission();
+
+                List<com.synk.entity.Submission> submissions = submissionRepository.findByMission(mission);
+                java.util.Set<Long> submittedUserIds = submissions.stream()
+                        .filter(s -> s.getStatus() == com.synk.entity.Submission.SubmissionStatus.SUBMITTED)
+                        .map(s -> s.getUser().getId())
+                        .collect(java.util.stream.Collectors.toSet());
+
+                List<Map<String, Object>> members = roomMembers.stream()
+                        .<Map<String, Object>>map(rm -> new HashMap<>(java.util.Map.of(
+                                "name", rm.getUser().getName(),
+                                "participated", submittedUserIds.contains(rm.getUser().getId())
+                        )))
+                        .toList();
+
+                String missionTime = mission.getTimeSlot() != null
+                        ? mission.getTimeSlot().getSlotTime().toString().substring(0, 5)
+                        : "";
+
+                Map<String, Object> videoEntry = new HashMap<>();
+                videoEntry.put("url", c.getCollageVideoUrl());
+                videoEntry.put("title", mission.getMissionTemplate().getTitle());
+                videoEntry.put("missionIndex", i);
+                videoEntry.put("missionTime", missionTime);
+                videoEntry.put("members", members);
+                videos.add(videoEntry);
+            }
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("synklogId", synklog.getId());
