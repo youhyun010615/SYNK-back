@@ -36,7 +36,8 @@ public class CollectionService {
     public CollectionResponse getCollections() {
         User user = getUser();
 
-        List<MissionTemplate> allTemplates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
+        // 도감 목록에는 튜토리얼도 포함(전용 카테고리로 노출), 단 수집률 분모에서는 제외
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll();
         List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
 
         Map<Long, List<CollectionRecord>> recordsByTemplateId = records.stream()
@@ -67,8 +68,15 @@ public class CollectionService {
                 })
                 .toList();
 
-        int totalCount = allTemplates.size();
-        int completedCount = recordsByTemplateId.size();
+        // 수집률: 튜토리얼 제외한 일반 미션 기준
+        java.util.Set<Long> nonTutorialIds = allTemplates.stream()
+                .filter(t -> !"튜토리얼".equals(t.getDescription()))
+                .map(MissionTemplate::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        int totalCount = nonTutorialIds.size();
+        int completedCount = (int) recordsByTemplateId.keySet().stream()
+                .filter(nonTutorialIds::contains)
+                .count();
         int completionRate = totalCount > 0 ? (int) ((double) completedCount / totalCount * 100) : 0;
 
         return CollectionResponse.builder()
