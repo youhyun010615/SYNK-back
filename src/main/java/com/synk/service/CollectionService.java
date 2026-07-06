@@ -36,7 +36,7 @@ public class CollectionService {
     public CollectionResponse getCollections() {
         User user = getUser();
 
-        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll();
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
         List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
 
         Map<Long, List<CollectionRecord>> recordsByTemplateId = records.stream()
@@ -96,7 +96,7 @@ public class CollectionService {
     public List<CollectionResponse.MissionSummary> getMissionCatalog() {
         User user = getUser();
 
-        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll();
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
         List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
 
         java.util.Set<Long> completedTemplateIds = records.stream()

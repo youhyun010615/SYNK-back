@@ -35,6 +35,7 @@ import com.synk.repository.SynklogRepository;
 import com.synk.repository.UserRepository;
 import com.synk.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +50,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RoomService {
@@ -121,7 +123,58 @@ public class RoomService {
                 .isOwner(false)
                 .build());
 
+        // 방이 방금 꽉 찼으면(모두 참여) 첫날 튜토리얼 미션 2개 예약
+        if (currentMembers + 1 >= room.getMaxMembers()) {
+            scheduleTutorialMissions(room);
+        }
+
         return JoinRoomResponse.from(room);
+    }
+
+    /**
+     * 방이 처음 꽉 찬 시점부터 +15분, +1시간에 고정 튜토리얼 미션 2개를 발동시킨다.
+     * 단 23시 이후면 +1시간이 다음날로 넘어가므로 건너뛰고, 기존대로 다음날 자정 스케줄러에 맡긴다.
+     */
+    private void scheduleTutorialMissions(Room room) {
+        // 이미 미션이 있는 방(재입장 등)이면 재생성하지 않음 — 최초 풀방일 때만
+        if (!missionRepository.findByRoom(room).isEmpty()) return;
+
+        ZoneId kst = ZoneId.of("Asia/Seoul");
+        LocalTime now = LocalTime.now(kst).withSecond(0).withNano(0);
+        LocalDate today = LocalDate.now(kst);
+
+        // 23시 이후면 튜토리얼 스킵 → 기존 로직(다음날 자정 생성)으로 자연 진행
+        if (now.getHour() >= 23) {
+            log.info("튜토리얼 미션 스킵(23시 이후): roomId={}", room.getId());
+            return;
+        }
+
+        List<MissionTemplate> tutorials = missionTemplateRepository.findByDescription("튜토리얼").stream()
+                .sorted(java.util.Comparator.comparing(MissionTemplate::getId))
+                .toList();
+        if (tutorials.size() < 2) {
+            log.warn("튜토리얼 템플릿 부족 — 미션 예약 취소: roomId={}, count={}", room.getId(), tutorials.size());
+            return;
+        }
+
+        int[] offsets = {15, 60}; // +15분, +1시간
+        for (int i = 0; i < 2; i++) {
+            LocalTime slotTime = now.plusMinutes(offsets[i]).withSecond(0).withNano(0);
+            MissionTimeSlot slot = missionTimeSlotRepository.findBySlotTime(slotTime)
+                    .orElseGet(() -> missionTimeSlotRepository.save(
+                            MissionTimeSlot.builder().slotTime(slotTime).build()));
+
+            if (missionRepository.existsByRoomAndDateAndTimeSlot(room, today, slot)) continue;
+
+            missionRepository.save(Mission.builder()
+                    .room(room)
+                    .missionTemplate(tutorials.get(i))
+                    .timeSlot(slot)
+                    .date(today)
+                    .build());
+        }
+        log.info("튜토리얼 미션 2개 예약 완료: roomId={}, 발동={}, {}",
+                room.getId(), now.plusMinutes(15), now.plusMinutes(60));
     }
 
     @Transactional(readOnly = true)

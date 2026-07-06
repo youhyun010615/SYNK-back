@@ -53,7 +53,7 @@ public class MissionScheduler {
     public void createDailyMissions() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         List<Room> rooms = roomRepository.findAll();
-        List<MissionTemplate> templates = missionTemplateRepository.findAll();
+        List<MissionTemplate> templates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
         List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
 
         for (Room room : rooms) {
