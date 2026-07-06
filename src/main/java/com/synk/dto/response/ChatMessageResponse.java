@@ -21,6 +21,7 @@ public class ChatMessageResponse {
     private int memberCount;
     private boolean todayMissionCompleted;
     private String todayMissionDate;
+    private boolean chatAlertEnabled;   // 종 아이콘 상태 (방별 채팅 알림 on/off)
     private List<MessageInfo> messages;
 
     @Getter

@@ -190,6 +190,17 @@ public class RoomService {
         return RoomDetailResponse.from(room, members);
     }
 
+    // 방별 채팅 알림 on/off 토글 (종 아이콘)
+    @Transactional
+    public boolean updateChatAlert(Long roomId, boolean enabled) {
+        User user = getUser();
+        Room room = getRoom(roomId);
+        RoomMember member = roomMemberRepository.findByUserAndRoom(user, room)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_ACCESS_DENIED));
+        member.setChatAlertEnabled(enabled);
+        return enabled;
+    }
+
     @Transactional
     public void leaveRoom(Long roomId) {
         User user = getUser();

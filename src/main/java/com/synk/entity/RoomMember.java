@@ -36,6 +36,10 @@ public class RoomMember {
     @Column(name = "last_read_message_id")
     private Long lastReadMessageId;
 
+    // 방별 채팅 알림 on/off (종 아이콘). 기본 on
+    @Column(name = "chat_alert_enabled", nullable = false)
+    private boolean chatAlertEnabled = true;
+
     @Builder
     public RoomMember(User user, Room room, boolean
             isOwner) {
@@ -43,6 +47,11 @@ public class RoomMember {
         this.room = room;
         this.isOwner = isOwner;
         this.joinedAt = LocalDateTime.now();
+        this.chatAlertEnabled = true;
+    }
+
+    public void setChatAlertEnabled(boolean enabled) {
+        this.chatAlertEnabled = enabled;
     }
 
     public void promoteToOwner() {

@@ -64,6 +64,17 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success(response, "방 설정 수정 완료"));
     }
 
+    // 방별 채팅 알림 on/off (종 아이콘). body: {"enabled": true/false}
+    @PatchMapping("/{roomId}/chat-alert")
+    public ResponseEntity<ApiResponse<Boolean>> updateChatAlert(
+            @PathVariable Long roomId,
+            @RequestBody java.util.Map<String, Boolean> body) {
+        boolean enabled = body.getOrDefault("enabled", true);
+        boolean result = roomService.updateChatAlert(roomId, enabled);
+        return ResponseEntity.ok(ApiResponse.success(result,
+                result ? "채팅 알림 켜짐" : "채팅 알림 꺼짐"));
+    }
+
     @DeleteMapping("/{roomId}/leave")
     public ResponseEntity<ApiResponse<Void>> leaveRoom(@PathVariable Long roomId) {
         roomService.leaveRoom(roomId);

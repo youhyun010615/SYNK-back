@@ -67,6 +67,7 @@ public class ChatService {
                 .memberCount(memberCount)
                 .todayMissionCompleted(todayMissionCompleted)
                 .todayMissionDate(today.toString())
+                .chatAlertEnabled(member.isChatAlertEnabled())
                 .messages(messages)
                 .build();
     }
@@ -116,6 +117,7 @@ public class ChatService {
         try {
             roomMemberRepository.findByRoom(room).stream()
                     .filter(m -> !m.getUser().getId().equals(user.getId()))
+                    .filter(RoomMember::isChatAlertEnabled)   // 방별 채팅 알림 끈 멤버 제외
                     .forEach(m -> fcmService.sendDataMessage(
                             m.getUser(),
                             Notification.NotificationType.CHAT,
@@ -172,6 +174,7 @@ public class ChatService {
         try {
             roomMemberRepository.findByRoom(room).stream()
                     .filter(m -> !m.getUser().getId().equals(user.getId()))
+                    .filter(RoomMember::isChatAlertEnabled)   // 방별 채팅 알림 끈 멤버 제외
                     .forEach(m -> fcmService.sendDataMessage(
                             m.getUser(),
                             Notification.NotificationType.CHAT,

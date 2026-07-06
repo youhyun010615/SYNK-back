@@ -168,7 +168,8 @@ public class CollageService {
                             mission.getId(),
                             java.util.Map.of(
                                     "type", "MISSION_COMPLETE",
-                                    "roomId", String.valueOf(mission.getRoom().getId())
+                                    "roomId", String.valueOf(mission.getRoom().getId()),
+                                    "missionId", String.valueOf(mission.getId())
                             )
                     );
                 } else {
