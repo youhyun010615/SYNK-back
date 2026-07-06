@@ -44,3 +44,8 @@ src/main/resources/firebase-service-account.json
 lambda/__pycache__/
 lambda/*.zip
 .DS_Store
+
+# Lambda 빌드 산출물 (로컬 패키징용, 커밋 대상 아님)
+lambda/deps/
+lambda/deps_collage/
+lambda/*.zip
