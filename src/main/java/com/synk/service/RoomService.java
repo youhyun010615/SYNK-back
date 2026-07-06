@@ -254,14 +254,21 @@ public class RoomService {
                         com.synk.dto.response.ParticipationResponse.MemberParticipation::getRate).reversed())
                 .toList();
 
-        // 순위 부여 (참여율 동률이면 같은 등수는 아니고 순서대로 1,2,3... 부여)
+        // 순위 부여 (참여율 동률이면 공동 순위 — 같은 rate면 같은 등수, 다음 등수는 건너뜀)
         List<com.synk.dto.response.ParticipationResponse.MemberParticipation> ranked = new java.util.ArrayList<>();
-        int rank = 1;
+        int rank = 0;
+        int prevRate = Integer.MIN_VALUE;
+        int index = 0;
         for (com.synk.dto.response.ParticipationResponse.MemberParticipation mp : memberList) {
+            index++;
+            if (mp.getRate() != prevRate) {
+                rank = index;          // 동률이 아니면 현재 순번을 등수로 (1,1,3,4 방식)
+                prevRate = mp.getRate();
+            }
             ranked.add(com.synk.dto.response.ParticipationResponse.MemberParticipation.builder()
                     .userId(mp.getUserId()).name(mp.getName()).profileImage(mp.getProfileImage())
                     .completed(mp.getCompleted()).total(mp.getTotal()).rate(mp.getRate())
-                    .rank(rank++).build());
+                    .rank(rank).build());
         }
 
         int averageRate = ranked.isEmpty() ? 0

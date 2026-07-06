@@ -164,6 +164,88 @@ def build_missed_image(path, w, h, name, dark=True):
     img.convert("RGB").save(path)
 
 
+def build_name_overlay(path, w, h, name):
+    """제출된 영상 셀 오른쪽 하단에 이름 표시하는 투명 PNG 생성 (작은 pill)"""
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    if not name:
+        img.save(path)
+        return
+
+    d = ImageDraw.Draw(img)
+    font_size = max(int(h * 0.035), 10)   # 기존 0.07 → 0.035 (절반으로)
+    try:
+        font = ImageFont.truetype(FONT_PATH, font_size)
+    except Exception:
+        font = ImageFont.load_default()
+
+    pad_x = int(h * 0.018)
+    pad_y = int(h * 0.012)
+    text_w = int(d.textlength(name, font=font))
+    bbox = font.getbbox(name)
+    text_h = bbox[3] - bbox[1]
+
+    bar_w = text_w + pad_x * 2
+    bar_h = text_h + pad_y * 2
+
+    # 오른쪽 하단 배치
+    margin = int(h * 0.03)
+    bx = w - bar_w - margin
+    by = h - bar_h - margin
+
+    bar = Image.new("RGBA", (bar_w, bar_h), (0, 0, 0, 160))
+    img.paste(bar, (bx, by), bar)
+    d.text((bx + pad_x, by + pad_y - bbox[1]), name, font=font, fill=(255, 255, 255, 220))
+    img.save(path)
+
+
+def build_mission_title_overlay(path, canvas_w, canvas_h, title):
+    """콜라주 전체 왼쪽 상단에 미션 제목 오버레이 (SYNK 브랜드 스타일)"""
+    img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+    if not title:
+        img.save(path)
+        return
+
+    d = ImageDraw.Draw(img)
+    font_size = max(int(canvas_h * 0.032), 12)
+    try:
+        font = ImageFont.truetype(FONT_PATH, font_size, index=1)  # bold
+    except Exception:
+        try:
+            font = ImageFont.truetype(FONT_PATH, font_size)
+        except Exception:
+            font = ImageFont.load_default()
+
+    dot_r = max(int(canvas_h * 0.008), 4)
+    pad_x = int(canvas_h * 0.018)
+    pad_y = int(canvas_h * 0.012)
+    margin = int(canvas_h * 0.025)
+
+    text_w = int(d.textlength(title, font=font))
+    bbox = font.getbbox(title)
+    text_h = bbox[3] - bbox[1]
+
+    # dot + 텍스트 합산 너비
+    content_w = dot_r * 2 + pad_x + text_w
+    bar_w = content_w + pad_x * 2
+    bar_h = text_h + pad_y * 2
+
+    # 반투명 pill 배경
+    bar = Image.new("RGBA", (bar_w, bar_h), (0, 0, 0, 170))
+    img.paste(bar, (margin, margin), bar)
+
+    # 코랄 도트 (E8735A)
+    dot_cx = margin + pad_x + dot_r
+    dot_cy = margin + bar_h // 2
+    d.ellipse([dot_cx - dot_r, dot_cy - dot_r, dot_cx + dot_r, dot_cy + dot_r],
+              fill=(232, 115, 90, 255))
+
+    # 미션 제목 텍스트
+    tx = margin + pad_x + dot_r * 2 + pad_x
+    ty = margin + pad_y - bbox[1]
+    d.text((tx, ty), title, font=font, fill=(255, 255, 255, 240))
+    img.save(path)
+
+
 def probe_video_info(local_video):
     """ffprobe가 레이어에 없어 ffmpeg stderr에서 직접 파싱한다.
     Returns: (duration_seconds, width, height, rotation_degrees)"""
@@ -241,6 +323,7 @@ def send_callback(url, secret, payload):
 
 def lambda_handler(event, context):
     mission_id = event["missionId"]
+    mission_title = event.get("missionTitle", "")
     submissions = event["submissions"]
     callback_url = event["callbackUrl"]
     callback_secret = event["callbackSecret"]
@@ -333,7 +416,7 @@ def lambda_handler(event, context):
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
                     f"{rotate_filter}"
                     f"scale={w}:{h}:force_original_aspect_ratio=increase,"
-                    f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}]"
+                    f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}_raw]"
                 )
             else:
                 missed_img_path = f"{tmp}/missed_{i}.png"
@@ -343,15 +426,34 @@ def lambda_handler(event, context):
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,setsar=1,fps={FPS}[f{i}]"
                 )
 
+        # 제출된 영상 셀에 이름 오버레이 PNG 추가 (입력 인덱스 n부터 시작)
+        name_input_idx = n
+        for i, (w, h, _, _) in enumerate(cells[:n]):
+            if local_videos[i]:
+                name = submissions[i].get("name", "")
+                name_png = f"{tmp}/name_{i}.png"
+                build_name_overlay(name_png, w, h, name)
+                inputs += ["-loop", "1", "-i", name_png]
+                filter_parts.append(
+                    f"[f{i}_raw][{name_input_idx}:v]overlay=0:0[f{i}]"
+                )
+                name_input_idx += 1
+
         filter_parts.append(
             f"color=black:size={CANVAS_W}x{CANVAS_H}:duration={duration}:rate={FPS}[base]"
         )
         prev = "base"
         for i in range(n):
             _, _, x, y = cells[i]
-            next_label = "out" if i == n - 1 else f"o{i}"
+            next_label = "assembled" if i == n - 1 else f"o{i}"
             filter_parts.append(f"[{prev}][f{i}]overlay={x}:{y}[{next_label}]")
             prev = f"o{i}"
+
+        # 미션 제목 오버레이 (콜라주 전체 왼쪽 상단)
+        title_png = f"{tmp}/mission_title.png"
+        build_mission_title_overlay(title_png, CANVAS_W, CANVAS_H, mission_title)
+        inputs += ["-loop", "1", "-i", title_png]
+        filter_parts.append(f"[assembled][{name_input_idx}:v]overlay=0:0[out]")
 
         filter_complex = ";".join(filter_parts)
 
