@@ -9,12 +9,16 @@ import com.synk.entity.RoomMember;
 import com.synk.global.exception.CustomException;
 import com.synk.global.exception.ErrorCode;
 import com.synk.global.response.ApiResponse;
+import com.synk.entity.User;
+import com.synk.entity.UserFcmToken;
 import com.synk.repository.CollageRepository;
 import com.synk.repository.MissionRepository;
 import com.synk.repository.MissionTemplateRepository;
 import com.synk.repository.MissionTimeSlotRepository;
 import com.synk.repository.RoomMemberRepository;
 import com.synk.repository.RoomRepository;
+import com.synk.repository.UserFcmTokenRepository;
+import com.synk.repository.UserRepository;
 import com.synk.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +41,8 @@ public class DebugController {
     private final CollageRepository collageRepository;
     private final RoomMemberRepository roomMemberRepository;
     private final FcmService fcmService;
+    private final UserRepository userRepository;
+    private final UserFcmTokenRepository userFcmTokenRepository;
 
     /** 개발용: 특정 방에 미션을 즉시 생성하고 ACTIVE 상태로 만든다. */
     @PostMapping("/rooms/{roomId}/trigger-mission")
@@ -86,5 +92,22 @@ public class DebugController {
         }
 
         return ResponseEntity.ok(ApiResponse.success(mission.getId(), "미션 강제 트리거 완료"));
+    }
+
+    /** 개발용: userId + fcmToken 직접 등록 */
+    @PostMapping("/users/{userId}/fcm-token")
+    public ResponseEntity<ApiResponse<Void>> registerFcmToken(
+            @PathVariable Long userId,
+            @RequestBody java.util.Map<String, String> body) {
+        String token = body.get("fcmToken");
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("fcmToken 필요"));
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        userFcmTokenRepository.findByToken(token)
+                .orElseGet(() -> userFcmTokenRepository.save(
+                        UserFcmToken.builder().user(user).token(token).build()));
+        return ResponseEntity.ok(ApiResponse.success(null, "FCM 토큰 등록 완료"));
     }
 }
