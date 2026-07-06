@@ -21,6 +21,7 @@ public class CollectionResponse {
     public static class MissionSummary {
         private Long missionId;
         private String title;
+        private String category;
         private String thumbnail;
         private int completedTimes;
         private String lastCompletedDate;

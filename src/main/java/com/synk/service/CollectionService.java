@@ -30,45 +30,51 @@ public class CollectionService {
     private final MissionTemplateRepository missionTemplateRepository;
     private final UserRepository userRepository;
 
-    private static final int TOTAL_MISSION_COUNT = 67;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     @Transactional(readOnly = true)
     public CollectionResponse getCollections() {
         User user = getUser();
 
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll();
         List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
 
-        Map<MissionTemplate, List<CollectionRecord>>
-                groupedByTemplate = records.stream()
-                .collect(Collectors.groupingBy(CollectionRecord::getMissionTemplate));
+        Map<Long, List<CollectionRecord>> recordsByTemplateId = records.stream()
+                .collect(Collectors.groupingBy(r -> r.getMissionTemplate().getId()));
 
-        List<CollectionResponse.MissionSummary> missions =
-                groupedByTemplate.entrySet().stream()
-                        .map(entry -> {
-                            MissionTemplate template = entry.getKey();
-                            List<CollectionRecord> templateRecords = entry.getValue();
-                            String lastDate = templateRecords.get(0).getDate().format(DATE_FORMAT);
-                            String thumbnail = templateRecords.get(0).getThumbnail();
+        List<CollectionResponse.MissionSummary> missions = allTemplates.stream()
+                .map(template -> {
+                    List<CollectionRecord> templateRecords = recordsByTemplateId.get(template.getId());
+                    if (templateRecords != null && !templateRecords.isEmpty()) {
+                        return CollectionResponse.MissionSummary.builder()
+                                .missionId(template.getId())
+                                .title(template.getTitle())
+                                .category(template.getDescription())
+                                .thumbnail(templateRecords.get(0).getThumbnail())
+                                .completedTimes(templateRecords.size())
+                                .lastCompletedDate(templateRecords.get(0).getDate().format(DATE_FORMAT))
+                                .build();
+                    } else {
+                        return CollectionResponse.MissionSummary.builder()
+                                .missionId(template.getId())
+                                .title(template.getTitle())
+                                .category(template.getDescription())
+                                .thumbnail(null)
+                                .completedTimes(0)
+                                .lastCompletedDate(null)
+                                .build();
+                    }
+                })
+                .toList();
 
-                            return CollectionResponse.MissionSummary.builder()
-                                            .missionId(template.getId())
-                                            .title(template.getTitle())
-                                            .thumbnail(thumbnail)
-
-                                            .completedTimes(templateRecords.size())
-                                            .lastCompletedDate(lastDate)
-                                            .build();
-                        })
-                        .toList();
-
-        int completedCount = groupedByTemplate.size();
-        int completionRate = (int) ((double) completedCount / TOTAL_MISSION_COUNT * 100);
+        int totalCount = allTemplates.size();
+        int completedCount = recordsByTemplateId.size();
+        int completionRate = totalCount > 0 ? (int) ((double) completedCount / totalCount * 100) : 0;
 
         return CollectionResponse.builder()
                 .completionRate(completionRate)
                 .completedCount(completedCount)
-                .totalCount(TOTAL_MISSION_COUNT)
+                .totalCount(totalCount)
                 .missions(missions)
                 .build();
     }
