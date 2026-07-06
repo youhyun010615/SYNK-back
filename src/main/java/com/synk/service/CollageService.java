@@ -94,8 +94,12 @@ public class CollageService {
                     })
                     .toList();
 
+            String missionTitleForPayload = mission.getMissionTemplate() != null
+                    ? mission.getMissionTemplate().getTitle() : "";
+
             Map<String, Object> payload = new HashMap<>();
             payload.put("missionId", mission.getId());
+            payload.put("missionTitle", missionTitleForPayload);
             payload.put("submissions", submissionPayloads);
             payload.put("callbackUrl", callbackUrl);
             payload.put("callbackSecret", callbackSecret);
