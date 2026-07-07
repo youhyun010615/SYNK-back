@@ -7,6 +7,7 @@ import com.synk.entity.RoomMember;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -24,6 +25,7 @@ public class RoomDetailResponse {
     private int dailyMissionCount;
     private LocalTime missionStartTime;
     private LocalTime missionEndTime;
+    private LocalDateTime createdAt;   // 방 생성 시각 (ISO 8601, 튜토리얼 안내 문구 분기용)
     private List<MemberInfo> members;
 
     @Getter
@@ -54,6 +56,7 @@ public class RoomDetailResponse {
                 .dailyMissionCount(room.getDailyMissionCount())
                 .missionStartTime(room.getMissionStartTime())
                 .missionEndTime(room.getMissionEndTime())
+                .createdAt(room.getCreatedAt())
                 .members(memberInfos)
                 .build();
     }
