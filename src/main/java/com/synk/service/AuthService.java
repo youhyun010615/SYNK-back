@@ -45,8 +45,9 @@ public class AuthService {
         Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
         String name = (String) profile.get("nickname");
         String profileImage = (String) profile.get("profile_image_url");
+        String email = (String) kakaoAccount.get("email");
 
-        return processLogin(User.AuthProvider.kakao, kakaoId, name, profileImage);
+        return processLogin(User.AuthProvider.kakao, kakaoId, name, profileImage, email);
     }
 
     @Transactional
@@ -57,12 +58,13 @@ public class AuthService {
         String googleId = (String) googleUser.get("sub");
         String name = (String) googleUser.get("name");
         String profileImage = (String) googleUser.get("picture");
+        String email = (String) googleUser.get("email");
 
-        return processLogin(User.AuthProvider.google, googleId, name, profileImage);
+        return processLogin(User.AuthProvider.google, googleId, name, profileImage, email);
     }
 
     private AuthResponse processLogin(User.AuthProvider provider, String providerId,
-                                      String name, String profileImage) {
+                                      String name, String profileImage, String email) {
         Optional<User> existingUser = userRepository
                 .findByAuthProviderAndAuthProviderId(provider, providerId);
 
@@ -73,8 +75,13 @@ public class AuthService {
                         .authProviderId(providerId)
                         .name(name)
                         .profileImage(profileImage)
+                        .email(email)
                         .build())
         );
+        // 기존 유저인데 이메일이 비어있으면 이번 로그인에서 채워넣음 (JPA dirty checking)
+        if (!isNewUser) {
+            user.updateEmailIfAbsent(email);
+        }
 
         String token = jwtProvider.generateToken(user.getId());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId());

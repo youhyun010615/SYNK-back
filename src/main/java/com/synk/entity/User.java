@@ -37,6 +37,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "profile_image", length = 1000)
     private String profileImage;
 
+    @Column(length = 255)
+    private String email;
+
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -56,15 +59,23 @@ public class User extends BaseTimeEntity {
     @Builder
     public User(AuthProvider authProvider, String
                         authProviderId, String name,
-                String profileImage) {
+                String profileImage, String email) {
         this.authProvider = authProvider;
         this.authProviderId = authProviderId;
         this.name = name;
         this.profileImage = profileImage;
+        this.email = email;
         this.status = "active";
         this.missionAlert = true;
         this.resultAlert = true;
         this.highlightAlert = true;
+    }
+
+    // 기존 유저가 이메일 없이 가입했던 경우 로그인 시 채워넣기 위함
+    public void updateEmailIfAbsent(String email) {
+        if ((this.email == null || this.email.isBlank()) && email != null && !email.isBlank()) {
+            this.email = email;
+        }
     }
 
     public enum AuthProvider {

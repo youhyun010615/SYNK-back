@@ -15,6 +15,8 @@ public class UserResponse {
     private Long userId;
     private String name;
     private String profileImage;
+    private String provider;   // "kakao" 또는 "google"
+    private String email;
     private boolean missionNotification;
     private boolean resultNotification;
     private boolean highlightNotification;
@@ -29,6 +31,8 @@ public class UserResponse {
                 .userId(user.getId())
                 .name(user.getName())
                 .profileImage(user.getProfileImage())
+                .provider(user.getAuthProvider() != null ? user.getAuthProvider().name() : null)
+                .email(user.getEmail())
                 .missionNotification(user.isMissionAlert())
                 .resultNotification(user.isResultAlert())
                 .highlightNotification(user.isHighlightAlert())
