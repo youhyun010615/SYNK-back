@@ -110,6 +110,15 @@ public class MissionScheduler {
             if (mission.getDate().equals(today)
                     &&
                     mission.getTimeSlot().getSlotTime().equals(now)) {
+
+                // 대기중(waiting) 방 — 풀방이 아니면 미션 발동·푸시 안 함 (멤버가 나가 정원 미달인 경우)
+                int currentMembers = roomMemberRepository.countByRoom(mission.getRoom());
+                if (currentMembers < mission.getRoom().getMaxMembers()) {
+                    log.info("미션 발동 스킵(대기중 방): missionId={}, 인원={}/{}",
+                            mission.getId(), currentMembers, mission.getRoom().getMaxMembers());
+                    continue;
+                }
+
                 mission.activate();
                 log.info("미션 활성화: missionId={}", mission.getId());
 
