@@ -77,7 +77,10 @@ public class CollageService {
             Map<Long, Submission> submissionByUserId = submissions.stream()
                     .collect(java.util.stream.Collectors.toMap(s -> s.getUser().getId(), s -> s, (a, b) -> a));
 
-            List<RoomMember> members = roomMemberRepository.findByRoom(mission.getRoom());
+            // 같은 방이면 콜라주 셀 위치가 항상 고정되도록 입장 순서(RoomMember id)로 정렬
+            List<RoomMember> members = roomMemberRepository.findByRoom(mission.getRoom()).stream()
+                    .sorted(java.util.Comparator.comparing(RoomMember::getId))
+                    .toList();
 
             // 전원 분량의 셀을 유지하기 위해 미제출자도 videoUrl=null로 포함시킨다 (Lambda가 빈 칸으로 렌더링)
             List<Map<String, Object>> submissionPayloads = members.stream()
