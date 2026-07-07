@@ -206,7 +206,7 @@ def build_mission_title_overlay(path, canvas_w, canvas_h, title):
         return
 
     d = ImageDraw.Draw(img)
-    font_size = max(int(canvas_h * 0.032), 12)
+    font_size = max(int(canvas_h * 0.026), 11)  # 조금 작게
     try:
         font = ImageFont.truetype(FONT_PATH, font_size, index=1)  # bold
     except Exception:
@@ -215,7 +215,6 @@ def build_mission_title_overlay(path, canvas_w, canvas_h, title):
         except Exception:
             font = ImageFont.load_default()
 
-    dot_r = max(int(canvas_h * 0.008), 4)
     pad_x = int(canvas_h * 0.018)
     pad_y = int(canvas_h * 0.012)
     margin = int(canvas_h * 0.025)
@@ -224,23 +223,16 @@ def build_mission_title_overlay(path, canvas_w, canvas_h, title):
     bbox = font.getbbox(title)
     text_h = bbox[3] - bbox[1]
 
-    # dot + 텍스트 합산 너비
-    content_w = dot_r * 2 + pad_x + text_w
-    bar_w = content_w + pad_x * 2
+    bar_w = text_w + pad_x * 2
     bar_h = text_h + pad_y * 2
 
-    # 반투명 pill 배경
-    bar = Image.new("RGBA", (bar_w, bar_h), (0, 0, 0, 170))
-    img.paste(bar, (margin, margin), bar)
-
-    # 코랄 도트 (E8735A)
-    dot_cx = margin + pad_x + dot_r
-    dot_cy = margin + bar_h // 2
-    d.ellipse([dot_cx - dot_r, dot_cy - dot_r, dot_cx + dot_r, dot_cy + dot_r],
-              fill=(232, 115, 90, 255))
+    # 반투명 둥근 pill 배경 (도트 없음, 모서리 라운드)
+    radius = int(bar_h * 0.38)
+    d.rounded_rectangle([margin, margin, margin + bar_w, margin + bar_h],
+                        radius=radius, fill=(0, 0, 0, 170))
 
     # 미션 제목 텍스트
-    tx = margin + pad_x + dot_r * 2 + pad_x
+    tx = margin + pad_x
     ty = margin + pad_y - bbox[1]
     d.text((tx, ty), title, font=font, fill=(255, 255, 255, 240))
     img.save(path)
