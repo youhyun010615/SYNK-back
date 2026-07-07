@@ -21,6 +21,7 @@ public class SynklogResponse {
     private String status;
     private String synklogVideoUrl;
     private String thumbnail;
+    private Long createdBy;   // SYNKLOG 생성자 userId ("내 Synklog" 필터용)
     private List<MissionInfo> missions;
 
     @Getter
@@ -45,6 +46,7 @@ public class SynklogResponse {
                 .status(synklog.getStatus().name())
                 .synklogVideoUrl(synklog.getSynklogVideoUrl())
                 .thumbnail(synklog.getThumbnail())
+                .createdBy(synklog.getCreatedBy() != null ? synklog.getCreatedBy().getId() : null)
                 .missions(missionInfos)
                 .build();
     }

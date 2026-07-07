@@ -24,6 +24,11 @@ public class Synklog {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
+    // SYNKLOG를 생성(또는 최근 재생성)한 유저 — "내 Synklog" 필터용
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
+
     @Column(nullable = false)
     private LocalDate date;
 
@@ -45,11 +50,16 @@ public class Synklog {
     private LocalDateTime completedAt;
 
     @Builder
-    public Synklog(Room room, LocalDate date) {
+    public Synklog(Room room, LocalDate date, User createdBy) {
         this.room = room;
         this.date = date;
+        this.createdBy = createdBy;
         this.status = SynklogStatus.PROCESSING;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public void updateCreatedBy(User user) {
+        this.createdBy = user;
     }
 
     public enum SynklogStatus {

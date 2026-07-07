@@ -119,6 +119,7 @@ public class AlbumService {
         Synklog existing = synklogRepository.findByRoomAndDate(room, date).orElse(null);
         if (existing != null) {
             existing.reprocess();
+            existing.updateCreatedBy(user);   // 재생성한 사람을 생성자로 갱신
             invokeSynklogLambda(existing, room, date, missionIds);
             return SynklogResponse.from(existing, null);
         }
@@ -126,6 +127,7 @@ public class AlbumService {
         Synklog synklog = synklogRepository.save(Synklog.builder()
                         .room(room)
                         .date(date)
+                        .createdBy(user)
                         .build());
 
         invokeSynklogLambda(synklog, room, date, missionIds);
