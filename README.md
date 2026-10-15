@@ -1,0 +1,43 @@
+# SYNK — 랜덤 미션 숏폼 콜라주 SNS
+
+> "우리는 지금, 같은 순간을 산다."
+> 예고 없는 랜덤 알림이 울리면 5분 안에 지금 그 순간을 찍고, 친구들의 순간이 하나의 콜라주 영상으로 자동 합성되는 실시간 동기화 SNS.
+
+- **배포 URL**: https://synk-front.vercel.app
+- **API**: https://api.synk.ai.kr
+- **Frontend 레포**: https://github.com/Ahyoung00/SYNK_front
+
+## 핵심 기능
+
+1. **랜덤 사이렌** — 하루 1~5회, 예고 없이 방 멤버 전원에게 동시 푸시(FCM)
+2. **5분 타임어택** — 알림 후 5분 이내 3~5초 영상 제출
+3. **Group Collage** — 전원 제출/만료 시 1~10명 분할 콜라주 자동 합성 (AWS Lambda + FFmpeg)
+4. **SYNKLOG** — 당일 콜라주를 이어붙인 9:16 일별 릴스 (방 단위 공유)
+5. **도감** — 완료 미션 개인 수집 + 카테고리별 수집률
+6. **실시간 채팅** — 방별 WebSocket(STOMP) + 백그라운드 푸시
+
+## 기술 스택
+
+| 구분 | 기술 |
+|---|---|
+| Backend | Spring Boot (Java 17), Spring Security, WebSocket(STOMP), JPA/Hibernate |
+| Database | PostgreSQL (Supabase) |
+| 인증 | JWT (Access/Refresh) + Kakao·Google OAuth2 |
+| 영상 처리 | AWS Lambda (Python + FFmpeg), AWS S3 |
+| 푸시 | Firebase Cloud Messaging |
+| 인프라 | AWS EC2 + Docker, GitHub Actions CI/CD |
+| Frontend | React 18 + TypeScript + Vite, PWA, Zustand |
+
+## 문서
+
+- [프로젝트 포트폴리오](SYNK_포트폴리오.md)
+- [시스템 아키텍처 다이어그램](docs/architecture.html)
+- [ERD](ERD.md) · [API 명세](API.md)
+
+## 로컬 실행
+
+```bash
+./gradlew bootRun
+```
+
+프로필별 설정은 `src/main/resources/application-{local,prod}.yaml`을 참고하세요.
