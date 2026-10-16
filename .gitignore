@@ -36,16 +36,18 @@ out/
 ### VS Code ###
 .vscode/
 
+### macOS ###
+.DS_Store
+
+### Logs ###
+*.log
+
 ### Secret ###
 application-local.yaml
 src/main/resources/firebase-service-account.json
 
-# Lambda build artifacts
+### Lambda 빌드 산출물 (로컬 패키징용) ###
 lambda/__pycache__/
-lambda/*.zip
-.DS_Store
-
-# Lambda 빌드 산출물 (로컬 패키징용, 커밋 대상 아님)
 lambda/deps/
 lambda/deps_collage/
 lambda/*.zip
