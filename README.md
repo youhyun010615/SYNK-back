@@ -1,5 +1,12 @@
 # SYNK — 랜덤 미션 숏폼 콜라주 SNS
 
+![Java](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=springboot&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-EC2%20·%20Lambda%20·%20S3-FF9900?logo=amazonaws&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Firebase](https://img.shields.io/badge/FCM-Firebase-FFCA28?logo=firebase&logoColor=black)
+
 > "우리는 지금, 같은 순간을 산다."
 > 예고 없는 랜덤 알림이 울리면 5분 안에 지금 그 순간을 찍고, 친구들의 순간이 하나의 콜라주 영상으로 자동 합성되는 실시간 동기화 SNS.
 
