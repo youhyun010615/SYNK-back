@@ -35,6 +35,20 @@
 | 인프라 | AWS EC2 + Docker, GitHub Actions CI/CD |
 | Frontend | React 18 + TypeScript + Vite, PWA, Zustand |
 
+## 콜라주 합성 플로우
+
+```
+미션 만료 / 전원 제출
+  → Backend가 submissions[] + 콜백 URL 구성
+  → AWS Lambda 비동기 Invoke (응답 대기 없음, API 논블로킹)
+  → Lambda: S3 영상 다운로드 → FFmpeg 분할 합성 → S3 업로드
+  → Backend 콜백 URL로 결과 POST
+  → Collage 상태 PROCESSING → COMPLETED
+```
+
+- 콜라주를 **비동기 Invoke + 콜백**으로 처리해 영상 합성 시간 동안 API가 멈추지 않습니다.
+- 당일 콜라주들은 다시 `synk-synklog` Lambda가 이어붙여 9:16 **SYNKLOG** 릴스로 생성합니다.
+
 ## 문서
 
 - [프로젝트 포트폴리오](SYNK_포트폴리오.md)
