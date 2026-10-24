@@ -14,6 +14,15 @@
 - **API**: https://api.synk.ai.kr
 - **Frontend 레포**: https://github.com/Ahyoung00/SYNK_front
 
+## 프로젝트 정보
+
+| 항목 | 내용 |
+|---|---|
+| 기간 | 2026.05 ~ 2026.07 (약 8주) |
+| 팀 구성 | 2인 (Backend / Frontend) |
+| 담당(Backend) | 콜라주 영상 파이프라인, 랜덤 미션 스케줄러, FCM 푸시, 실시간 채팅, 인증·도감 API, 인프라/CI·CD |
+| 플랫폼 | PWA (iOS Safari / Android Chrome "홈 화면에 추가") |
+
 ## 핵심 기능
 
 1. **랜덤 사이렌** — 하루 1~5회, 예고 없이 방 멤버 전원에게 동시 푸시(FCM)
