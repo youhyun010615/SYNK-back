@@ -71,3 +71,9 @@
 ```
 
 프로필별 설정은 `src/main/resources/application-{local,prod}.yaml`을 참고하세요.
+
+## 배포
+
+- **Backend**: `main` 브랜치 push 시 GitHub Actions가 Gradle 빌드 → Docker Hub push → AWS EC2 자동 배포
+- **Frontend**: Vercel 자동 배포 (`synk-front.vercel.app`)
+- **API 도메인**: `api.synk.ai.kr` (Elastic IP + Nginx 리버스 프록시 + HTTPS)
