@@ -85,6 +85,8 @@ public class MissionScheduler {
 
         for (Room room : roomRepository.findAll()) {
             if (!isFull(room)) continue;
+            // 오늘 미션 시간대가 이미 끝난 방은 복구해도 생성할 슬롯이 없으므로 skip (불필요한 로그/조회 방지)
+            if (room.getMissionEndTime() != null && !room.getMissionEndTime().isAfter(now)) continue;
             if (!missionRepository.findByRoomAndDate(room, today).isEmpty()) continue; // 오늘 미션 있으면 skip
             log.warn("풀방인데 오늘 미션 0개 감지 — 자가복구: roomId={}, name={}", room.getId(), room.getName());
             generateDailyMissionsForRoom(room, true, today); // 남은 시간대 슬롯만
