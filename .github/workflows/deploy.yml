@@ -91,6 +91,7 @@ jobs:
             AWS_LAMBDA_COLLAGE_FUNCTION=$AWS_LAMBDA_COLLAGE_FUNCTION
             COLLAGE_CALLBACK_SECRET=$COLLAGE_CALLBACK_SECRET
             COLLAGE_CALLBACK_URL=$COLLAGE_CALLBACK_URL
+            JAVA_TOOL_OPTIONS=-Xmx448m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m
             EOF
 
             docker pull ${{ env.IMAGE_NAME }}:latest
