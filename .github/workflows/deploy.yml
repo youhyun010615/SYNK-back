@@ -101,5 +101,7 @@ jobs:
               --restart unless-stopped \
               -p 8080:8080 \
               --env-file ~/synk.env \
+              --log-opt max-size=10m \
+              --log-opt max-file=3 \
               ${{ env.IMAGE_NAME }}:latest
             docker image prune -f

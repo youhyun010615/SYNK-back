@@ -18,6 +18,8 @@ public interface MissionRepository extends JpaRepository<Mission,
 
     List<Mission> findByRoomAndDate(Room room, LocalDate date);
 
+    boolean existsByDate(LocalDate date);
+
     List<Mission> findByRoomAndDateBetween(Room room, LocalDate start, LocalDate end);
 
     List<Mission> findByRoom(Room room);

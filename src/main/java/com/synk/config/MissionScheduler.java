@@ -51,7 +51,23 @@ public class MissionScheduler {
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
     public void createDailyMissions() {
+        generateDailyMissions(false); // 자정: 모든 시간대 슬롯 대상
+    }
+
+    // 자가복구: 서버가 자정 배치를 놓친 경우(크래시/재시작 등) 시작 시 당일 미션을 생성한다.
+    // 이미 오늘 미션이 있으면 아무것도 하지 않는다.
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    @Transactional
+    public void catchUpMissionsOnStartup() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        if (missionRepository.existsByDate(today)) return;
+        log.warn("서버 시작 — 오늘({}) 미션 없음, 자가복구로 당일 미션 생성 (남은 시간대 슬롯만)", today);
+        generateDailyMissions(true); // 지난 시간대 슬롯 제외
+    }
+
+    private void generateDailyMissions(boolean skipPastSlots) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalTime now = LocalTime.now(ZoneId.of("Asia/Seoul"));
         List<Room> rooms = roomRepository.findAll();
         List<MissionTemplate> templates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
         List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
@@ -65,7 +81,9 @@ public class MissionScheduler {
                             .filter(slot ->
                                     !slot.getSlotTime().isBefore(room.getMissionStartTime())
                                             &&
-                                            !slot.getSlotTime().isAfter(room.getMissionEndTime()))
+                                            !slot.getSlotTime().isAfter(room.getMissionEndTime())
+                                            // 자가복구 시 이미 지난 시간대는 발동 못 하므로 제외
+                                            && (!skipPastSlots || slot.getSlotTime().isAfter(now)))
                             .collect(java.util.stream.Collectors.toList());
 
             Collections.shuffle(availableSlots);
@@ -94,7 +112,7 @@ public class MissionScheduler {
                         .build());
             }
         }
-        log.info("당일 미션 생성 완료: {}", today);
+        log.info("당일 미션 생성 완료: {} (자가복구={})", today, skipPastSlots);
     }
 
     // 매분 PENDING → ACTIVE
