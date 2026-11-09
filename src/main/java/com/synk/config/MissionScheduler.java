@@ -100,7 +100,7 @@ public class MissionScheduler {
     // 한 방의 당일 미션을 생성한다. skipPastSlots=true면 이미 지난 시간대 슬롯은 제외(발동 불가하므로).
     private void generateDailyMissionsForRoom(Room room, boolean skipPastSlots, LocalDate today) {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Seoul"));
-        List<MissionTemplate> templates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
+        List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueAndDescriptionNot("튜토리얼");
         List<MissionTimeSlot> allSlots = missionTimeSlotRepository.findAll();
         if (templates.isEmpty()) {
             log.warn("미션 템플릿 없음 — 생성 취소: roomId={}", room.getId());

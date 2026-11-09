@@ -15,4 +15,9 @@ public interface MissionTemplateRepository extends JpaRepository<MissionTemplate
 
     // 일반 미션 풀 (튜토리얼 제외)
     List<MissionTemplate> findByDescriptionNot(String description);
+
+    // 현재 사용 중인 일반 미션 풀 (튜토리얼 제외, 교체되어 비활성화된 미션 제외)
+    List<MissionTemplate> findByActiveTrueAndDescriptionNot(String description);
+
+    boolean existsByDescriptionIn(java.util.Collection<String> descriptions);
 }

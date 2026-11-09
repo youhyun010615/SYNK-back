@@ -36,12 +36,17 @@ public class CollectionService {
     public CollectionResponse getCollections() {
         User user = getUser();
 
-        // 도감 목록에는 튜토리얼도 포함(전용 카테고리로 노출), 단 수집률 분모에서는 제외
-        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll();
+        // 도감 목록에는 튜토리얼도 포함(전용 카테고리로 노출).
+        // 교체되어 비활성화된 옛 미션은 모은 기록이 있어도 도감에서 숨긴다 (현재 미션만 노출).
         List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
 
         Map<Long, List<CollectionRecord>> recordsByTemplateId = records.stream()
                 .collect(Collectors.groupingBy(r -> r.getMissionTemplate().getId()));
+
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll().stream()
+                .filter(MissionTemplate::isActive)
+                .sorted(java.util.Comparator.comparing(MissionTemplate::getId))
+                .toList();
 
         List<CollectionResponse.MissionSummary> missions = allTemplates.stream()
                 .map(template -> {
@@ -68,9 +73,11 @@ public class CollectionService {
                 })
                 .toList();
 
-        // 수집률: 튜토리얼 포함 전체 미션 기준
+        // 수집률: 도감에 보이는 현재 미션(활성, 튜토리얼 포함) 기준
         int totalCount = allTemplates.size();
-        int completedCount = recordsByTemplateId.size();
+        int completedCount = (int) allTemplates.stream()
+                .filter(t -> recordsByTemplateId.containsKey(t.getId()))
+                .count();
         int completionRate = totalCount > 0 ? (int) ((double) completedCount / totalCount * 100) : 0;
 
         return CollectionResponse.builder()
@@ -98,7 +105,7 @@ public class CollectionService {
     public List<CollectionResponse.MissionSummary> getMissionCatalog() {
         User user = getUser();
 
-        List<MissionTemplate> allTemplates = missionTemplateRepository.findByDescriptionNot("튜토리얼");
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findByActiveTrueAndDescriptionNot("튜토리얼");
         List<CollectionRecord> records = collectionRecordRepository.findByUser(user);
 
         java.util.Set<Long> completedTemplateIds = records.stream()

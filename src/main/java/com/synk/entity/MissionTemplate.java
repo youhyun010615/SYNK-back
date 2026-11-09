@@ -25,9 +25,18 @@ public class MissionTemplate extends BaseTimeEntity {
     @Column(length = 500)
     private String description;
 
+    // 미션 풀 사용 여부. 교체된 옛 미션은 지우지 않고(과거 미션·도감 기록이 참조) false로 보관한다.
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
+
     @Builder
     public MissionTemplate(String title, String description){
         this.title = title;
         this.description = description;
+    }
+
+    // 미션 풀에서 제외 (과거 기록 보존을 위해 삭제 대신 비활성화)
+    public void deactivate() {
+        this.active = false;
     }
 }
