@@ -4,7 +4,7 @@ package com.synk.dto.request;
 
 import lombok.Getter;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import com.synk.global.json.EndOfDayTimeDeserializer;
 
 import java.time.LocalTime;

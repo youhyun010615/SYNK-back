@@ -1,8 +1,8 @@
 package com.synk.dto.request;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RoomRequestTimeTest {
 
-    private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
+    // Spring Boot 4 는 Jackson 3 를 사용한다. Jackson 2(com.fasterxml) 매퍼로 테스트하면 실제 동작과 달라진다.
+    private final ObjectMapper mapper = JsonMapper.builder().build();
 
     private static String createJson(String start, String end) {
         return """
@@ -42,13 +43,13 @@ class RoomRequestTimeTest {
 
     @Test
     void 시작시각_24시는_계속_거부한다() {
-        assertThrows(JsonMappingException.class,
+        assertThrows(DatabindException.class,
                 () -> mapper.readValue(createJson("24:00", "22:00"), CreateRoomRequest.class));
     }
 
     @Test
     void 종료시각_잘못된_형식은_거부한다() {
-        assertThrows(JsonMappingException.class,
+        assertThrows(DatabindException.class,
                 () -> mapper.readValue(createJson("10:00", "25:00"), CreateRoomRequest.class));
     }
 }
