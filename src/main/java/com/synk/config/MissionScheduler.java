@@ -93,8 +93,9 @@ public class MissionScheduler {
         }
     }
 
+    // 미션 생성 대상 방: 알림 대상(신규 방)이면서 정원이 찬 방. 기존 방(push_enabled=false)은 미션을 만들지 않는다.
     private boolean isFull(Room room) {
-        return roomMemberRepository.countByRoom(room) >= room.getMaxMembers();
+        return room.isPushEnabled() && roomMemberRepository.countByRoom(room) >= room.getMaxMembers();
     }
 
     // 한 방의 당일 미션을 생성한다. skipPastSlots=true면 이미 지난 시간대 슬롯은 제외(발동 불가하므로).
@@ -161,6 +162,13 @@ public class MissionScheduler {
             if (mission.getDate().equals(today)
                     &&
                     mission.getTimeSlot().getSlotTime().equals(now)) {
+
+                // 기존 방(알림 대상 아님) — 이미 만들어진 미션이라도 발동·푸시하지 않는다
+                if (!mission.getRoom().isPushEnabled()) {
+                    log.info("미션 발동 스킵(알림 대상 아닌 방): missionId={}, roomId={}",
+                            mission.getId(), mission.getRoom().getId());
+                    continue;
+                }
 
                 // 대기중(waiting) 방 — 풀방이 아니면 미션 발동·푸시 안 함 (멤버가 나가 정원 미달인 경우)
                 int currentMembers = roomMemberRepository.countByRoom(mission.getRoom());
