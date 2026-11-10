@@ -160,6 +160,7 @@ public class CollageService {
                     ? mission.getMissionTemplate().getTitle() : "미션";
             for (RoomMember member : roomMemberRepository.findByRoom(mission.getRoom())) {
                 User memberUser = member.getUser();
+                if (!mission.getRoom().isPushEnabled()) continue; // 기존 방(알림 대상 아님)은 푸시하지 않음
                 if (memberUser.isResultAlert()) {
                     log.info("MISSION_COMPLETE 발송 대상: userId={}, name={}, resultAlert=true",
                             memberUser.getId(), memberUser.getName());

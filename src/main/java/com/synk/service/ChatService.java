@@ -115,6 +115,7 @@ public class ChatService {
 
         // FCM 푸시 실패가 채팅 전송(트랜잭션)을 롤백시키지 않도록 방어
         try {
+            if (!room.isPushEnabled()) return response; // 기존 방(알림 대상 아님)은 푸시하지 않음
             roomMemberRepository.findByRoom(room).stream()
                     .filter(m -> !m.getUser().getId().equals(user.getId()))
                     .filter(RoomMember::isChatAlertEnabled)   // 방별 채팅 알림 끈 멤버 제외
@@ -172,6 +173,7 @@ public class ChatService {
 
         // FCM 푸시 실패가 채팅 전송(트랜잭션)을 롤백시키지 않도록 방어
         try {
+            if (!room.isPushEnabled()) return response; // 기존 방(알림 대상 아님)은 푸시하지 않음
             roomMemberRepository.findByRoom(room).stream()
                     .filter(m -> !m.getUser().getId().equals(user.getId()))
                     .filter(RoomMember::isChatAlertEnabled)   // 방별 채팅 알림 끈 멤버 제외

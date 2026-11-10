@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -15,6 +16,11 @@ import java.time.LocalTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Room extends BaseTimeEntity {
+
+    // 이 시각 이후에 생성된 방부터만 미션 발동·푸시 알림 대상이다. (KST, 2026-11-10 정식 시작)
+    // 그 이전에 만들어진 기존 방은 알림·미션 발동을 하지 않는다. DB 컬럼/마이그레이션 없이
+    // 생성 시각으로 판단하므로 배포 시점과 무관하고, 되돌리려면 이 값을 조정하면 된다.
+    public static final LocalDateTime PUSH_START_AT = LocalDateTime.of(2026, 11, 10, 0, 0);
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -81,5 +87,10 @@ public class Room extends BaseTimeEntity {
         this.owner = newOwner;
     }
 
-}
+    // 미션 발동·푸시 알림 대상 여부: PUSH_START_AT 이후에 만들어진 신규 방만 true
+    public boolean isPushEnabled() {
+        LocalDateTime createdAt = getCreatedAt();
+        return createdAt == null || !createdAt.isBefore(PUSH_START_AT); // 아직 저장 전이면 신규 방
+    }
 
+}
