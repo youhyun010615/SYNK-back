@@ -63,6 +63,7 @@
 - [프로젝트 포트폴리오](SYNK_포트폴리오.md)
 - [시스템 아키텍처 다이어그램](docs/architecture.html)
 - [ERD](ERD.md) · [API 명세](API.md)
+- [Git 작업 흐름](docs/git-workflow.md) — 커밋·이슈·브랜치·PR 규칙
 
 ## 로컬 실행
 
