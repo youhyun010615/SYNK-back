@@ -43,10 +43,18 @@ public class CollectionService {
         Map<Long, List<CollectionRecord>> recordsByTemplateId = records.stream()
                 .collect(Collectors.groupingBy(r -> r.getMissionTemplate().getId()));
 
-        List<MissionTemplate> allTemplates = missionTemplateRepository.findAll().stream()
-                .filter(MissionTemplate::isActive)
-                .sorted(java.util.Comparator.comparing(MissionTemplate::getId))
-                .toList();
+        // 템플릿별 가장 최근 완료일 (정렬용)
+        Map<Long, java.time.LocalDate> latestCompletedByTemplateId = records.stream()
+                .collect(Collectors.toMap(
+                        r -> r.getMissionTemplate().getId(),
+                        CollectionRecord::getDate,
+                        (a, b) -> a.isAfter(b) ? a : b));
+
+        List<MissionTemplate> allTemplates = orderForDisplay(
+                missionTemplateRepository.findAll().stream()
+                        .filter(MissionTemplate::isActive)
+                        .toList(),
+                latestCompletedByTemplateId);
 
         List<CollectionResponse.MissionSummary> missions = allTemplates.stream()
                 .map(template -> {
@@ -86,6 +94,28 @@ public class CollectionService {
                 .totalCount(totalCount)
                 .missions(missions)
                 .build();
+    }
+
+    /**
+     * 도감 목록 정렬.
+     * - 카테고리 순서: 미션 id 기준 처음 등장한 순서를 유지한다. (프론트가 카테고리 탭과 색을 이 순서로 정하므로 바뀌면 안 됨)
+     * - 같은 카테고리 안: 완료한 미션을 위로(가장 최근에 완료한 것이 맨 위), 그다음 미완료 미션을 id 순으로.
+     */
+    static List<MissionTemplate> orderForDisplay(List<MissionTemplate> templates,
+                                                 Map<Long, java.time.LocalDate> latestCompletedByTemplateId) {
+        Map<String, Long> categoryFirstId = new java.util.HashMap<>();
+        templates.stream()
+                .sorted(java.util.Comparator.comparing(MissionTemplate::getId))
+                .forEach(t -> categoryFirstId.putIfAbsent(String.valueOf(t.getDescription()), t.getId()));
+
+        return templates.stream()
+                .sorted(java.util.Comparator
+                        .comparing((MissionTemplate t) -> categoryFirstId.get(String.valueOf(t.getDescription())))
+                        // 완료일이 있는 것(완료) 먼저, 최근 완료일이 위 / 완료일이 없는 것(미완료)은 뒤로
+                        .thenComparing(t -> latestCompletedByTemplateId.get(t.getId()),
+                                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                        .thenComparing(MissionTemplate::getId))
+                .toList();
     }
 
     @Transactional(readOnly = true)
