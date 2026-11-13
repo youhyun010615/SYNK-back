@@ -28,8 +28,10 @@ LAYOUTS = {
     10: [[2], [2], [2], [2], [2]],
 }
 
-CANVAS_W = 720
-CANVAS_H = 1280
+# 캔버스는 SYNKLOG(1080x1920)와 같은 해상도로 바로 합성한다.
+# (예전 720x1280 으로 만든 뒤 SYNKLOG 에서 1.5배 키우면 화질이 떨어졌다)
+CANVAS_W = 1080
+CANVAS_H = 1920
 FPS = 30
 MAX_COLLAGE_DURATION = 15.0  # 폭주 방지용 상한선
 FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "NanumGothic.ttc")
@@ -264,7 +266,7 @@ def probe_video_info(local_video):
     return duration, width, height, rotation
 
 
-CELL_GAP = 6  # 셀 간 간격 (px)
+CELL_GAP = 9  # 셀 간 간격 (px) — 720 폭 기준 6px 과 같은 비율
 
 def get_cells(rows_config):
     n_rows = len(rows_config)
@@ -407,7 +409,7 @@ def lambda_handler(event, context):
                 filter_parts.append(
                     f"[{i}:v]trim=duration={duration},setpts=PTS-STARTPTS,"
                     f"{rotate_filter}"
-                    f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+                    f"scale={w}:{h}:force_original_aspect_ratio=increase:flags=lanczos,"
                     f"crop={w}:{h}:(in_w-{w})/2:(in_h-{h})/2,setsar=1,fps={FPS}[f{i}_raw]"
                 )
             else:
@@ -454,7 +456,7 @@ def lambda_handler(event, context):
             + inputs
             + ["-filter_complex", filter_complex, "-map", "[out]",
                "-t", str(duration), "-r", str(FPS), "-pix_fmt", "yuv420p",
-               "-c:v", "libx264", "-preset", "faster", "-crf", "20",
+               "-c:v", "libx264", "-preset", "faster", "-crf", "18",
                "-movflags", "+faststart",
                collage_path]
         )

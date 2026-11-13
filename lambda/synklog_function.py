@@ -39,7 +39,7 @@ W, H, FPS = 1080, 1920, 30
 FADE = 0.3
 
 ENC = [
-    "-c:v", "libx264", "-preset", "faster", "-crf", "22",
+    "-c:v", "libx264", "-preset", "faster", "-crf", "18",
     "-pix_fmt", "yuv420p", "-r", str(FPS),
     "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
     "-video_track_timescale", "90000",
@@ -447,6 +447,18 @@ def probe_duration(path: str) -> float:
     return 5.0
 
 
+def probe_size(path: str):
+    """영상 (width, height). 측정 실패 시 (None, None)."""
+    r = subprocess.run([FFMPEG, "-i", path], capture_output=True, text=True, timeout=30)
+    m = re.search(r"Video:.*?[,\s](\d{2,5})x(\d{2,5})", r.stderr)
+    return (int(m.group(1)), int(m.group(2))) if m else (None, None)
+
+
+def is_9x16(w, h, tol: float = 0.01) -> bool:
+    """가로세로 비가 9:16 에 충분히 가까운지 (콜라주는 항상 9:16)."""
+    return bool(w and h) and abs((w / h) - (9 / 16)) <= (9 / 16) * tol
+
+
 def has_audio(path: str) -> bool:
     r = subprocess.run([FFMPEG, "-i", path], capture_output=True, text=True, timeout=30)
     return "Audio:" in r.stderr
@@ -471,15 +483,20 @@ def image_to_video(img_path: str, duration: float, out: str, tmp: str):
 def video_to_9x16_plain(src: str, out: str, tmp: str, target_duration: float = 5.0):
     """콜라주 영상 → 9:16 블러 배경, 무조건 target_duration초로 루프 처리."""
     fade_out_st = max(target_duration - FADE, 0)
+    fades = f"fade=t=in:st=0:d={FADE},fade=t=out:st={fade_out_st}:d={FADE}"
+    src_w, src_h = probe_size(src)
     # -stream_loop -1 로 무한 루프, -t 로 target_duration에서 잘라냄
-    fc = (
-        f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
-        f"crop={W}:{H},boxblur=20:2,setsar=1[bg];"
-        f"[0:v]scale={W}:{H}:force_original_aspect_ratio=decrease,setsar=1[fg];"
-        f"[bg][fg]overlay=(W-w)/2:(H-h)/2,"
-        f"fade=t=in:st=0:d={FADE},"
-        f"fade=t=out:st={fade_out_st}:d={FADE}[v]"
-    )
+    if is_9x16(src_w, src_h):
+        # 콜라주는 이미 9:16 → 블러 배경 없이 바로 스케일 (1080x1920 콜라주는 사실상 그대로 통과)
+        fc = f"[0:v]scale={W}:{H}:flags=lanczos,setsar=1,{fades}[v]"
+    else:
+        # 비율이 다른 영상만 블러 배경 위에 맞춰 넣는다
+        fc = (
+            f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,"
+            f"crop={W}:{H},boxblur=20:2,setsar=1[bg];"
+            f"[0:v]scale={W}:{H}:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1[fg];"
+            f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{fades}[v]"
+        )
     cmd = [FFMPEG, "-y", "-stream_loop", "-1", "-i", src]
     if has_audio(src):
         audio_map = ["-map", "0:a"]
@@ -591,10 +608,12 @@ def lambda_handler(event, context):
                     f.write(f"file '{p}'\n")
 
             out_video = os.path.join(tmp, "synklog.mp4")
+            # 세그먼트가 모두 같은 코덱/해상도/타임스케일(ENC)로 인코딩되어 있으므로 재인코딩 없이 복사.
+            # (예전에는 여기서 ENC 로 한 번 더 인코딩해 화질이 깎였다)
             run([
                 FFMPEG, "-y",
                 "-f", "concat", "-safe", "0", "-i", concat_list,
-                *ENC,
+                "-c", "copy",
                 "-movflags", "+faststart",
                 out_video,
             ])
