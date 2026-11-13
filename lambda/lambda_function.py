@@ -200,46 +200,6 @@ def build_name_overlay(path, w, h, name):
     img.save(path)
 
 
-def build_mission_title_overlay(path, canvas_w, canvas_h, title):
-    """콜라주 전체 왼쪽 상단에 미션 제목 오버레이 (SYNK 브랜드 스타일)"""
-    img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
-    if not title:
-        img.save(path)
-        return
-
-    d = ImageDraw.Draw(img)
-    font_size = max(int(canvas_h * 0.026), 11)  # 조금 작게
-    try:
-        font = ImageFont.truetype(FONT_PATH, font_size, index=1)  # bold
-    except Exception:
-        try:
-            font = ImageFont.truetype(FONT_PATH, font_size)
-        except Exception:
-            font = ImageFont.load_default()
-
-    pad_x = int(canvas_h * 0.018)
-    pad_y = int(canvas_h * 0.012)
-    margin = int(canvas_h * 0.025)
-
-    text_w = int(d.textlength(title, font=font))
-    bbox = font.getbbox(title)
-    text_h = bbox[3] - bbox[1]
-
-    bar_w = text_w + pad_x * 2
-    bar_h = text_h + pad_y * 2
-
-    # 반투명 둥근 pill 배경 (도트 없음, 모서리 라운드)
-    radius = int(bar_h * 0.38)
-    d.rounded_rectangle([margin, margin, margin + bar_w, margin + bar_h],
-                        radius=radius, fill=(0, 0, 0, 170))
-
-    # 미션 제목 텍스트
-    tx = margin + pad_x
-    ty = margin + pad_y - bbox[1]
-    d.text((tx, ty), title, font=font, fill=(255, 255, 255, 240))
-    img.save(path)
-
-
 def probe_video_info(local_video):
     """ffprobe가 레이어에 없어 ffmpeg stderr에서 직접 파싱한다.
     Returns: (duration_seconds, width, height, rotation_degrees)"""
@@ -317,7 +277,7 @@ def send_callback(url, secret, payload):
 
 def lambda_handler(event, context):
     mission_id = event["missionId"]
-    mission_title = event.get("missionTitle", "")
+    # missionTitle 은 BE 가 계속 보내지만 콜라주에는 표시하지 않는다.
     submissions = event["submissions"]
     callback_url = event["callbackUrl"]
     callback_secret = event["callbackSecret"]
@@ -439,15 +399,11 @@ def lambda_handler(event, context):
         prev = "base"
         for i in range(n):
             _, _, x, y = cells[i]
-            next_label = "assembled" if i == n - 1 else f"o{i}"
+            next_label = "out" if i == n - 1 else f"o{i}"
             filter_parts.append(f"[{prev}][f{i}]overlay={x}:{y}[{next_label}]")
             prev = f"o{i}"
 
-        # 미션 제목 오버레이 (콜라주 전체 왼쪽 상단)
-        title_png = f"{tmp}/mission_title.png"
-        build_mission_title_overlay(title_png, CANVAS_W, CANVAS_H, mission_title)
-        inputs += ["-loop", "1", "-i", title_png]
-        filter_parts.append(f"[assembled][{name_input_idx}:v]overlay=0:0[out]")
+        # 콜라주에는 미션 제목을 넣지 않는다 (제목 바가 맨 위 칸의 얼굴을 가렸음). 마지막 오버레이 결과가 곧 [out].
 
         filter_complex = ";".join(filter_parts)
 
