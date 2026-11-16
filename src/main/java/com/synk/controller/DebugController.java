@@ -56,7 +56,8 @@ public class DebugController {
                     throw new CustomException(ErrorCode.INVALID_REQUEST);
                 });
 
-        List<MissionTemplate> templates = missionTemplateRepository.findAll();
+        // 실제 미션 배치와 같은 풀(튜토리얼 제외, 활성 미션만)에서 뽑는다
+        List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueAndDescriptionNot("튜토리얼");
         Collections.shuffle(templates);
         MissionTemplate template = templates.get(0);
 

@@ -488,8 +488,8 @@ public class RoomService {
     public Long sendTestNotification(Long roomId) {
         Room room = getRoom(roomId);
 
-        // 매 테스트마다 완전 랜덤 미션을 새로 생성 (튜토리얼 제외)
-        List<MissionTemplate> pool = missionTemplateRepository.findByDescriptionNot("튜토리얼");
+        // 매 테스트마다 완전 랜덤 미션을 새로 생성 (튜토리얼 제외, 현재 사용 중인 활성 미션만)
+        List<MissionTemplate> pool = missionTemplateRepository.findByActiveTrueAndDescriptionNot("튜토리얼");
         if (pool.isEmpty()) throw new CustomException(ErrorCode.MISSION_NOT_FOUND);
         MissionTemplate template = pool.get(new java.util.Random().nextInt(pool.size()));
 
