@@ -4,6 +4,18 @@ on:
   push:
     branches:
       - main
+    # 서버 코드와 무관한 변경(문서, Lambda, 이슈/PR 템플릿)만 있는 push 는 배포(서버 재시작)를 건너뛴다.
+    # 변경 파일 중 하나라도 아래 경로 밖이면 평소처럼 배포된다.
+    # (Lambda 는 이 워크플로가 아니라 별도로 직접 배포한다)
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '**/*.md'
+      - 'lambda/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+  # 필요할 때 Actions 탭에서 수동으로 배포
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/synk

@@ -63,6 +63,7 @@
 5. **PR 생성** — 작업 브랜치에서 `main` 으로, 관련 이슈 연결
 6. **PR 병합** — `main` 직접 push 대신 PR 로 통합 (Squash Merge 를 원칙으로 한다)
 7. **배포** — `main` 에 반영되면 GitHub Actions 가 빌드 → Docker 이미지 push → EC2 배포를 실행
+   - 문서(`docs/`, `*.md`)·Lambda(`lambda/`)·이슈/PR 템플릿만 바뀐 push 는 배포를 건너뛴다. 그 밖의 파일이 하나라도 포함되면 배포된다. 필요하면 Actions 탭에서 수동 실행(`workflow_dispatch`)할 수 있다.
 
 ## 5. PR
 
