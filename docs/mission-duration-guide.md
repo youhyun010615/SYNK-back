@@ -7,10 +7,11 @@
 
 | 위치 | 내용 |
 |---|---|
-| `Mission.activate()` | 미션이 발동될 때 `deadline = 지금 + 5분` 으로 저장한다. **실제 마감 시간을 정하는 곳.** |
-| `Mission.getDeadline()` | `deadline` 이 비어 있는 예전 데이터용 보조 계산 (`발동 예정 시각 + 5분`). 같은 값으로 맞춘다. |
+| `Mission.DURATION_MINUTES` | **제한 시간(분)을 정하는 상수 한 곳.** 값만 바꾸면 된다. |
+| `Mission.activate()` | 미션이 발동될 때 `deadline = 지금 + DURATION_MINUTES` 로 저장한다. 실제 마감 시간이 여기서 정해진다. |
+| `Mission.getDeadline()` | `deadline` 이 비어 있는 예전 데이터용 보조 계산 (`발동 예정 시각 + DURATION_MINUTES`). |
 
-- 두 곳이 같은 값을 쓰도록 상수 하나로 묶는 것을 권장한다.
+- 두 계산 모두 같은 상수를 쓰므로 따로 고칠 곳이 없다. (`MissionDeadlineTest` 가 이를 검증한다)
 - **DB 스키마 변경은 없다.** 마감 시각은 `missions.deadline` 컬럼에 미션마다 저장된다.
 - **진행 중인 미션은 영향이 없다.** 배포 시점에 이미 ACTIVE 인 미션은 저장된 마감(예전 값)으로 끝나고, 배포 이후 발동되는 미션부터 새 값이 적용된다.
 - 마감 처리(`MissionScheduler.processExpiredMissions`), 남은 시간 계산(`ActiveMissionResponse` 등)은 저장된 `deadline` 을 쓰므로 수정할 필요가 없다.

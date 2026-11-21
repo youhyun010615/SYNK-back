@@ -19,6 +19,11 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Mission {
+
+    // 미션 제한 시간(분). 발동 시각부터 이 시간 안에 제출해야 한다.
+    // 제한 시간을 바꿀 때는 이 값만 바꾸면 된다. (프론트의 문구·카운트다운은 별도 저장소 — docs/mission-duration-guide.md 참고)
+    public static final long DURATION_MINUTES = 5;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -72,12 +77,12 @@ public class Mission {
     }
 
     public LocalDateTime getDeadline() {
-        return deadline != null ? deadline : getTargetedAt().plusMinutes(5);
+        return deadline != null ? deadline : getTargetedAt().plusMinutes(DURATION_MINUTES);
     }
 
     public void activate() {
         this.status = MissionStatus.ACTIVE;
-        this.deadline = LocalDateTime.now().plusMinutes(5);
+        this.deadline = LocalDateTime.now().plusMinutes(DURATION_MINUTES);
     }
 
     public void complete() {
