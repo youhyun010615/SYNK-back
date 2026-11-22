@@ -24,6 +24,8 @@ import boto3
 S3_BUCKET = os.environ.get("S3_BUCKET", "synk-videos")
 FFMPEG = "/opt/ffmpeg"
 FONT      = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Korean.ttf")
+# 주의: NanumGothicBold.ttf 는 실제 폰트가 아니어서(HTML 파일이었고 저장소에서 제거함) 없는 파일이다. 굵은 글씨는 폴백 폰트로 대체된다.
+# 굵은 글씨가 필요하면 NanumGothic.ttc 를 index=1 로 쓴다. (docs/lambda-deploy.md 참고)
 FONT_BOLD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "NanumGothicBold.ttf")
 LOGO      = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SYNK 로고.jpeg")
 
