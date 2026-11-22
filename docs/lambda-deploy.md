@@ -95,7 +95,7 @@ aws lambda update-function-code --function-name $FN --zip-file fileb://base.zip 
 
 ## 7. 주의사항
 
-- **`NanumGothicBold.ttf`, `NotoSansKR-Bold.otf` 는 폰트가 아니라 HTML 문서**(다운로드가 잘못 저장된 파일)다. 사용하면 `OSError: unknown file format` 이 나거나 코드의 폴백 폰트로 대체된다. 굵은 글씨는 `NanumGothic.ttc` 의 index 1 (`ImageFont.truetype(path, size, index=1)`), 보통 글씨는 index 0 을 쓴다.
+- **`NanumGothicBold.ttf`, `NotoSansKR-Bold.otf` 는 폰트가 아니라 HTML 문서**(다운로드가 잘못 저장된 파일)여서 저장소에서 제거했다. 다만 이미 배포된 SYNKLOG zip 안에는 남아 있을 수 있으니 다음 배포 때 빼고, 새로 만들지 않는다. 굵은 글씨는 `NanumGothic.ttc` 의 index 1 (`ImageFont.truetype(path, size, index=1)`), 보통 글씨는 index 0 을 쓴다.
 - 로컬 ffmpeg 와 Lambda 레이어 ffmpeg 버전이 다르다. 로컬에서 성공해도 **배포 후 스모크 테스트를 꼭 한다.**
 - 콜라주 입력(제출 영상) 해상도는 FE 의 `getUserMedia` 설정에 달려 있다. 2026-11-14 부터 1280×720 으로 들어오고(그 이전은 640×480), 합성 로그의 `→ video[i] WxH` 줄로 확인할 수 있다.
 - 합성 시간은 해상도와 인원이 늘수록 늘어난다. 2026-11-13 ~ 20 사이 콜라주 합성은 약 13~24초 걸렸다. 제한 시간(콜라주 900초, SYNKLOG 600초)에는 여유가 크지만 큰 변경 뒤에는 `REPORT` 의 소요 시간을 확인한다.
