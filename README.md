@@ -65,6 +65,15 @@
 - [ERD](ERD.md) · [API 명세](API.md)
 - [Git 작업 흐름](docs/git-workflow.md) — 커밋·이슈·브랜치·PR 규칙
 
+운영·개발 가이드
+
+- [Lambda 배포 가이드](docs/lambda-deploy.md) — 콜라주·SYNKLOG Lambda 배포·검증·롤백
+- [푸시 알림 트러블슈팅](docs/push-notification-troubleshooting.md) — 알림이 안 올 때 원인 좁히는 순서
+- [미션 제한 시간 변경 가이드](docs/mission-duration-guide.md) — 5분을 바꿀 때 고칠 곳
+- [백엔드 HTTPS 도메인 적용](docs/https-domain-setup.md)
+- [MySQL → Supabase 마이그레이션](docs/mysql-to-supabase-migration.md)
+- [개발 작업 전체 정리](docs/개발작업_전체정리.md)
+
 ## 로컬 실행
 
 ```bash
@@ -76,5 +85,7 @@
 ## 배포
 
 - **Backend**: `main` 브랜치 push 시 GitHub Actions가 Gradle 빌드 → Docker Hub push → AWS EC2 자동 배포
+  - 문서(`docs/`, `*.md`)·`lambda/`·이슈/PR 템플릿만 바뀐 push 는 배포를 건너뜁니다. 필요하면 Actions 탭에서 수동 실행할 수 있습니다.
+- **Lambda**(콜라주·SYNKLOG): 위 워크플로로 배포되지 않고 직접 배포합니다. 절차는 [Lambda 배포 가이드](docs/lambda-deploy.md) 참고
 - **Frontend**: Vercel 자동 배포 (`synk-front.vercel.app`)
 - **API 도메인**: `api.synk.ai.kr` (Elastic IP + Nginx 리버스 프록시 + HTTPS)
