@@ -11,6 +11,8 @@ import com.synk.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import
@@ -29,6 +31,7 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final UserRepository userRepository;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final Environment environment;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -41,18 +44,21 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/collages/callback",
-                                "/api/synklogs/callback",
-                                "/debug/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/ws/**"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(
+                            "/api/auth/**",
+                            "/api/collages/callback",
+                            "/api/synklogs/callback",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/ws/**"
+                    ).permitAll();
+                    // 디버그 엔드포인트는 로컬 개발에서만 로그인 없이 열고, 운영(prod)에서는 열지 않는다
+                    if (!environment.acceptsProfiles(Profiles.of("prod"))) {
+                        auth.requestMatchers("/debug/**").permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, userRepository),
                         UsernamePasswordAuthenticationFilter.class
