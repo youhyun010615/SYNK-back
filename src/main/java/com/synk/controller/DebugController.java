@@ -25,10 +25,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import org.springframework.context.annotation.Profile;
+
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 
+// 개발·테스트 전용 엔드포인트. 운영(prod)에서는 빈 자체를 등록하지 않는다. (SecurityConfig 에서도 prod 에서는 /debug/** 를 열지 않음)
+@Profile("!prod")
 @RestController
 @RequestMapping("/debug")
 @RequiredArgsConstructor
